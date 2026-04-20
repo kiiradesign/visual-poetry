@@ -30,3 +30,9 @@ This project aims to reunite the draft with its visual soul. By using a poem's w
 
 Languages: JavaScript/TypeScript
 File Formats: Markdown (for poem drafts) and standard image formats (JPEG/PNG) for reference photos
+
+# References & Inspiration
+
+Visual Poetry (Wikipedia): A comprehensive look at the history and evolution of the form, from antiquity to modern concrete poetry. [Link](https://en.wikipedia.org/wiki/Visual_poetry)
+
+Typewriter Art (The Marginalian): An exploration of how the constraints of a grid-based text system were first used to create complex imagery, which serves as the spiritual predecessor to this project. [Link](https://www.themarginalian.org/2014/05/23/typewriter-art-laurence-king/)
