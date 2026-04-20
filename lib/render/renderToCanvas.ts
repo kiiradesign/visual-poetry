@@ -18,7 +18,7 @@ export function renderToCanvas(
   context.fillStyle = settings.backgroundColor;
   context.fillRect(0, 0, dimensions.width, dimensions.height);
 
-  const glyphs = layoutTextGrid(poem, brightnessMap, dimensions.cols, dimensions.rows);
+  const glyphs = layoutTextGrid(poem, brightnessMap, dimensions.cols, dimensions.rows, settings.cellSize);
   context.fillStyle = settings.textColor;
   context.font = `${settings.cellSize}px var(--font-render), monospace`;
   context.textBaseline = "top";
