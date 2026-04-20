@@ -1,1 +1,2 @@
-# Visual Poetry Hackathon Project
+# Visual Poetry
+
