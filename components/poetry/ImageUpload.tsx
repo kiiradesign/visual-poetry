@@ -9,8 +9,8 @@ type ImageUploadProps = {
 
 export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUploadProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <label htmlFor="image-upload" className="mb-2 block text-sm font-semibold text-slate-700">
+    <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+      <label htmlFor="image-upload" className="mb-2 block text-sm font-semibold">
         Reference image
       </label>
       <input
@@ -18,16 +18,16 @@ export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUplo
         type="file"
         accept="image/png,image/jpeg,image/jpg"
         onChange={(event) => onSelect(event.target.files?.[0] ?? null)}
-        className="block w-full text-sm text-slate-700 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium hover:file:bg-slate-200"
+        className="block w-full text-sm text-foreground file:mr-3 file:rounded-md file:border-0 file:bg-secondary file:px-3 file:py-2 file:text-sm file:font-medium file:text-secondary-foreground hover:file:bg-secondary/80"
       />
-      <p className="mt-2 text-xs text-slate-500">
+      <p className="mt-2 text-xs text-muted-foreground">
         {filename ? `Selected: ${filename}` : "Upload PNG or JPEG to guide the composition."}
       </p>
-      <p className="mt-1 text-xs text-slate-500">
+      <p className="mt-1 text-xs text-muted-foreground">
         Uploads are currently compressed to viewport size and converted to monochrome detail mapping.
       </p>
       {previewUrl ? (
-        <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <div className="mt-3 overflow-hidden rounded-md border border-solid border-border bg-muted p-2">
           <Image
             src={previewUrl}
             alt={filename ? `${filename} preview` : "Reference image preview"}
@@ -38,7 +38,7 @@ export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUplo
           />
         </div>
       ) : null}
-      {error ? <p className="mt-2 text-xs text-red-600">{error}</p> : null}
+      {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}
     </section>
   );
 }

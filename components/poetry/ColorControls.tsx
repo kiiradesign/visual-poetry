@@ -1,3 +1,5 @@
+import { ThemeRange } from "@/components/theme-range";
+
 type ColorControlsProps = {
   textColor: string;
   backgroundColor: string;
@@ -28,14 +30,14 @@ export function ColorControls({
   onWordSpacingChange,
 }: ColorControlsProps) {
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold text-slate-700">Visual controls</h2>
+    <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+      <h2 className="mb-3 text-sm font-semibold">Visual controls</h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Text color
           <input type="color" value={textColor} onChange={(e) => onTextColorChange(e.target.value)} />
         </label>
-        <label className="flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm">
+        <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Background color
           <input
             type="color"
@@ -44,56 +46,56 @@ export function ColorControls({
           />
         </label>
       </div>
-      <label className="mt-4 flex items-center justify-between rounded-lg border border-slate-200 px-3 py-2 text-sm text-slate-700">
+      <label className="mt-4 flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
         <span className="font-medium">Text details</span>
       </label>
-      <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-        <label className="mt-1 block text-sm text-slate-700">
+      <div className="mt-3 rounded-md border border-solid border-border p-3">
+        <label className="mt-1 block text-sm">
           Text size: <span className="font-semibold">{cellSize}px</span>
-          <input
-            type="range"
+          <ThemeRange
             min={6}
             max={26}
             step={1}
             value={cellSize}
-            onChange={(event) => onCellSizeChange(Number(event.target.value))}
+            onChange={onCellSizeChange}
             className="mt-2 w-full"
+            aria-label="Text size"
           />
         </label>
-        <label className="mt-3 block text-sm text-slate-700">
+        <label className="mt-3 block text-sm">
           Detail: <span className="font-semibold">{detailStrength.toFixed(2)}</span>
-          <input
-            type="range"
+          <ThemeRange
             min={0}
             max={1}
             step={0.05}
             value={detailStrength}
-            onChange={(event) => onDetailStrengthChange(Number(event.target.value))}
+            onChange={onDetailStrengthChange}
             className="mt-2 w-full"
+            aria-label="Detail strength"
           />
         </label>
-        <label className="mt-2 block text-sm text-slate-700">
+        <label className="mt-2 block text-sm">
           Line height: <span className="font-semibold">{lineHeight.toFixed(2)}x</span>
-          <input
-            type="range"
+          <ThemeRange
             min={0.8}
             max={2}
             step={0.05}
             value={lineHeight}
-            onChange={(event) => onLineHeightChange(Number(event.target.value))}
+            onChange={onLineHeightChange}
             className="mt-2 w-full"
+            aria-label="Line height"
           />
         </label>
-        <label className="mt-3 block text-sm text-slate-700">
+        <label className="mt-3 block text-sm">
           Word spacing: <span className="font-semibold">{wordSpacing}</span>
-          <input
-            type="range"
+          <ThemeRange
             min={1}
             max={6}
             step={1}
             value={wordSpacing}
-            onChange={(event) => onWordSpacingChange(Number(event.target.value))}
+            onChange={onWordSpacingChange}
             className="mt-2 w-full"
+            aria-label="Word spacing"
           />
         </label>
       </div>

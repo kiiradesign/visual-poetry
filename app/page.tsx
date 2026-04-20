@@ -6,6 +6,7 @@ import { ExportPanel } from "@/components/poetry/ExportPanel";
 import { ImageUpload } from "@/components/poetry/ImageUpload";
 import { PoemInput } from "@/components/poetry/PoemInput";
 import { RenderPreview } from "@/components/poetry/RenderPreview";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { exportPng } from "@/lib/render/exportPng";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { preprocessImage } from "@/lib/render/preprocessImage";
@@ -160,14 +161,19 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen p-4 sm:p-8">
+    <main className="min-h-screen bg-background p-4 sm:p-8">
       <div className="mx-auto grid w-full max-w-7xl gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
         <div className="space-y-4">
-          <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-            <h1 className="text-2xl font-semibold text-slate-900">Visual Poetry</h1>
-            <p className="mt-1 text-sm text-slate-600">
-              Turn plain text poetry into image-guided type compositions.
-            </p>
+          <header className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <h1 className="text-2xl font-semibold tracking-tight">Visual Poetry</h1>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Turn plain text poetry into image-guided type compositions.
+                </p>
+              </div>
+              <ThemeToggle />
+            </div>
           </header>
           <PoemInput value={poem} onChange={setPoem} />
           <ImageUpload

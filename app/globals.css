@@ -1,3 +1,5 @@
+/* Tailwind v3: do not import tw-animate-css / shadcn tailwind.css here — they target
+   Tailwind v4 (@theme / @utility) and are not processed by tailwindcss@3. */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -16,12 +18,200 @@ body {
   padding: 0;
 }
 
+/* IBM Plex from next/font sets --font-ui; map to shadcn’s font-sans token */
 body {
-  font-family: var(--font-ui), sans-serif;
-  background: #f5f7fb;
-  color: #111827;
+  --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-sans);
 }
 
 .font-render {
   font-family: var(--font-render), monospace;
+}
+
+/*
+  Theme tokens: shadcn registry `zinc` (apps/v4/registry/themes.ts on main).
+  Project presets like `--preset beEgp9Ae` resolve to this base when baseColor/theme is zinc.
+*/
+@layer base {
+  .theme {
+    --font-heading: var(--font-sans);
+    --font-sans: var(--font-sans);
+  }
+  :root {
+    --background: oklch(1 0 0);
+    --foreground: oklch(0.141 0.005 285.823);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.141 0.005 285.823);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.141 0.005 285.823);
+    --primary: oklch(0.21 0.006 285.885);
+    --primary-foreground: oklch(0.985 0 0);
+    --secondary: oklch(0.967 0.001 286.375);
+    --secondary-foreground: oklch(0.21 0.006 285.885);
+    --muted: oklch(0.967 0.001 286.375);
+    --muted-foreground: oklch(0.552 0.016 285.938);
+    --accent: oklch(0.967 0.001 286.375);
+    --accent-foreground: oklch(0.21 0.006 285.885);
+    --destructive: oklch(0.577 0.245 27.325);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(0.92 0.004 286.32);
+    --input: oklch(0.92 0.004 286.32);
+    --ring: oklch(0.705 0.015 286.067);
+    --chart-1: oklch(0.871 0.006 286.286);
+    --chart-2: oklch(0.552 0.016 285.938);
+    --chart-3: oklch(0.442 0.017 285.786);
+    --chart-4: oklch(0.37 0.013 285.805);
+    --chart-5: oklch(0.274 0.006 286.033);
+    --radius: 0.625rem;
+    --sidebar: oklch(0.985 0 0);
+    --sidebar-foreground: oklch(0.141 0.005 285.823);
+    --sidebar-primary: oklch(0.21 0.006 285.885);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.967 0.001 286.375);
+    --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
+    --sidebar-border: oklch(0.92 0.004 286.32);
+    --sidebar-ring: oklch(0.705 0.015 286.067);
+    /* Range: filled segment (left of thumb) + remainder track + thumb — Luma reference */
+    --slider-fill: var(--foreground);
+    --slider-track: oklch(0.88 0.012 286.32);
+    --slider-thumb: oklch(1 0 0);
+  }
+  .dark {
+    color-scheme: dark;
+    --background: oklch(0.141 0.005 285.823);
+    --foreground: oklch(0.985 0 0);
+    --card: oklch(0.21 0.006 285.885);
+    --card-foreground: oklch(0.985 0 0);
+    --popover: oklch(0.21 0.006 285.885);
+    --popover-foreground: oklch(0.985 0 0);
+    --primary: oklch(0.92 0.004 286.32);
+    --primary-foreground: oklch(0.21 0.006 285.885);
+    --secondary: oklch(0.274 0.006 286.033);
+    --secondary-foreground: oklch(0.985 0 0);
+    --muted: oklch(0.274 0.006 286.033);
+    --muted-foreground: oklch(0.705 0.015 286.067);
+    --accent: oklch(0.274 0.006 286.033);
+    --accent-foreground: oklch(0.985 0 0);
+    --destructive: oklch(0.704 0.191 22.216);
+    --destructive-foreground: oklch(0.985 0 0);
+    --border: oklch(1 0 0 / 10%);
+    --input: oklch(1 0 0 / 15%);
+    --ring: oklch(0.552 0.016 285.938);
+    --chart-1: oklch(0.871 0.006 286.286);
+    --chart-2: oklch(0.552 0.016 285.938);
+    --chart-3: oklch(0.442 0.017 285.786);
+    --chart-4: oklch(0.37 0.013 285.805);
+    --chart-5: oklch(0.274 0.006 286.033);
+    --sidebar: oklch(0.21 0.006 285.885);
+    --sidebar-foreground: oklch(0.985 0 0);
+    --sidebar-primary: oklch(0.488 0.243 264.376);
+    --sidebar-primary-foreground: oklch(0.985 0 0);
+    --sidebar-accent: oklch(0.274 0.006 286.033);
+    --sidebar-accent-foreground: oklch(0.985 0 0);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.552 0.016 285.938);
+    --slider-fill: oklch(0.985 0 0);
+    --slider-track: oklch(0.36 0.022 286);
+    --slider-thumb: oklch(0.985 0 0);
+  }
+  * {
+    @apply border-border outline-ring;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+  html {
+    @apply font-sans;
+  }
+  input[type="color"] {
+    cursor: pointer;
+  }
+}
+
+/* Fields & sliders — match shadcn Input/textarea (transparent on card) + visible range tracks */
+@layer components {
+  /* Same as shadcn Input: bg-transparent on surface, border-input, subtle shadow, ring-1 focus */
+  .vp-field {
+    @apply border-[1px] border-solid border-input bg-transparent text-sm text-foreground shadow-sm transition-[color,box-shadow];
+  }
+  .vp-field::placeholder {
+    @apply text-muted-foreground;
+  }
+  .vp-field:focus-visible {
+    @apply outline-none ring-1 ring-ring;
+  }
+
+  /* --range-fill-pct set by ThemeRange (0%–100%) for WebKit two-tone track */
+  input[type="range"].vp-range {
+    --range-fill-pct: 0%;
+    @apply h-7 w-full max-w-full cursor-pointer appearance-none bg-transparent p-0;
+    accent-color: transparent;
+  }
+
+  input[type="range"].vp-range:focus-visible {
+    @apply outline-none;
+  }
+
+  input[type="range"].vp-range::-webkit-slider-runnable-track {
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: linear-gradient(
+      to right,
+      var(--slider-fill) 0%,
+      var(--slider-fill) var(--range-fill-pct),
+      var(--slider-track) var(--range-fill-pct),
+      var(--slider-track) 100%
+    );
+  }
+
+  /* Horizontal pill thumb (wider than tall), centered on track */
+  input[type="range"].vp-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    margin-top: -0.1875rem;
+    width: 1.375rem;
+    height: 0.75rem;
+    border-radius: 9999px;
+    border: none;
+    background: var(--slider-thumb);
+    box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+
+  input[type="range"].vp-range:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--ring),
+      0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+
+  /* Firefox: native progress + track split */
+  input[type="range"].vp-range::-moz-range-track {
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: var(--slider-track);
+    border: none;
+  }
+
+  input[type="range"].vp-range::-moz-range-progress {
+    height: 0.375rem;
+    border-radius: 9999px;
+    background: var(--slider-fill);
+    border: none;
+  }
+
+  input[type="range"].vp-range::-moz-range-thumb {
+    width: 1.375rem;
+    height: 0.75rem;
+    border: none;
+    border-radius: 9999px;
+    background: var(--slider-thumb);
+    box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+
+  input[type="range"].vp-range:focus-visible::-moz-range-thumb {
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4px var(--ring),
+      0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
 }

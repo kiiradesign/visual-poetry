@@ -53,14 +53,20 @@ export function RenderPreview({
   }, [backgroundColor, brightnessMap, cellSize, detailStrength, lineHeight, poem, textColor, wordSpacing]);
 
   return (
-    <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold text-slate-700">Live preview</h2>
+    <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+      <h2 className="mb-3 text-sm font-semibold">Live preview</h2>
       {errorMessage ? (
-        <div className="flex h-80 items-center justify-center rounded-lg border border-dashed border-slate-300 bg-slate-50 px-6 text-center text-sm text-slate-500">
+        <div
+          className="flex h-80 items-center justify-center rounded-md border border-dashed border-solid border-border/80 px-6 text-center text-sm shadow-inner"
+          style={{ backgroundColor, color: textColor }}
+        >
           {errorMessage}
         </div>
       ) : (
-        <div className="overflow-auto rounded-lg border border-slate-200 bg-slate-50 p-2">
+        <div
+          className="overflow-auto rounded-md border border-solid border-border p-2 shadow-inner"
+          style={{ backgroundColor }}
+        >
           <canvas ref={canvasRef} className="font-render max-h-[70vh] w-full object-contain" />
         </div>
       )}
