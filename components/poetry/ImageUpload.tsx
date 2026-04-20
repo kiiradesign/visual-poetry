@@ -23,6 +23,9 @@ export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUplo
       <p className="mt-2 text-xs text-slate-500">
         {filename ? `Selected: ${filename}` : "Upload PNG or JPEG to guide the composition."}
       </p>
+      <p className="mt-1 text-xs text-slate-500">
+        Uploads are currently compressed to viewport size and converted to monochrome detail mapping.
+      </p>
       {previewUrl ? (
         <div className="mt-3 overflow-hidden rounded-lg border border-slate-200 bg-slate-50 p-2">
           <Image

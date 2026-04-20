@@ -1,10 +1,4 @@
 import { BrightnessMap, RenderDimensions } from "./types";
-import {
-  layoutNextLineRange,
-  materializeLineRange,
-  prepareWithSegments,
-  type LayoutCursor,
-} from "@chenglou/pretext";
 
 function normalizedPoem(poem: string): string {
   const compact = poem
@@ -16,7 +10,7 @@ function normalizedPoem(poem: string): string {
   return compact.length > 0 ? compact : "visual poetry";
 }
 
-function sampleBrightnessAtCell(
+export function sampleBrightnessAtCell(
   brightnessMap: BrightnessMap,
   col: number,
   row: number,
@@ -79,45 +73,34 @@ function rowSpanFromBrightness(
   };
 }
 
-function justifyToWidth(line: string, width: number): string {
-  if (line.length >= width) {
-    return line.slice(0, width);
+function minWordCells(wordLength: number): number {
+  return Math.max(1, wordLength);
+}
+
+function letterStepForFit(wordLength: number, remaining: number): number {
+  if (wordLength <= 1) {
+    return 1;
   }
-
-  const words = line.split(" ");
-  if (words.length <= 1) {
-    return line;
+  // Keep letters contiguous to preserve readability.
+  const needed = wordLength;
+  if (needed <= remaining) {
+    return 1;
   }
-
-  const totalWordLength = words.reduce((sum, word) => sum + word.length, 0);
-  const gaps = words.length - 1;
-  const targetSpaces = Math.max(gaps, width - totalWordLength);
-  const basePerGap = Math.floor(targetSpaces / gaps);
-  let extras = targetSpaces % gaps;
-
-  let out = words[0];
-  for (let i = 1; i < words.length; i += 1) {
-    const extra = extras > 0 ? 1 : 0;
-    const spaces = " ".repeat(basePerGap + extra);
-    out += `${spaces}${words[i]}`;
-    if (extras > 0) {
-      extras -= 1;
-    }
-  }
-
-  return out.slice(0, width);
+  return 1;
 }
 
 export function getRenderDimensions(
   sourceWidth: number,
   sourceHeight: number,
-  cellSize: number
+  cellSize: number,
+  lineHeight: number
 ): RenderDimensions {
+  const rowStep = Math.max(1, Math.floor(cellSize * lineHeight));
   const cols = Math.max(1, Math.floor(sourceWidth / cellSize));
-  const rows = Math.max(1, Math.floor(sourceHeight / cellSize));
+  const rows = Math.max(1, Math.floor(sourceHeight / rowStep));
   return {
     width: cols * cellSize,
-    height: rows * cellSize,
+    height: rows * rowStep,
     cols,
     rows,
   };
@@ -128,40 +111,70 @@ export function layoutTextGrid(
   brightnessMap: BrightnessMap,
   cols: number,
   rows: number,
-  cellSize: number
+  cellSize: number,
+  wordSpacing: number,
+  detailStrength: number
 ): string[] {
+  void cellSize;
   const output: string[] = new Array(cols * rows).fill(" ");
-  const normalized = normalizedPoem(poem);
-  const prepared = prepareWithSegments(normalized, `400 ${cellSize}px "IBM Plex Mono"`);
-  let cursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 };
-  const startCursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 };
+  const words = normalizedPoem(poem).split(" ");
+  let wordIndex = 0;
+  const totalWords = words.length;
+  const detailBias = Math.min(1, Math.max(0, detailStrength));
+  const preferredGap = Math.max(1, Math.round(wordSpacing));
 
   for (let row = 0; row < rows; row += 1) {
     const span = rowSpanFromBrightness(brightnessMap, row, cols, rows);
     if (!span) {
       continue;
     }
-    const { start, end } = span;
-    const availableWidth = Math.max(1, end - start + 1);
-    const availablePixelWidth = availableWidth * cellSize;
 
-    let range = layoutNextLineRange(prepared, cursor, availablePixelWidth);
-    if (range === null) {
-      cursor = { ...startCursor };
-      range = layoutNextLineRange(prepared, cursor, availablePixelWidth);
-    }
-
-    if (range === null) {
+    const inset = Math.max(1, Math.round((1 - detailBias) * 2));
+    const drawStart = Math.min(cols - 1, span.start + inset);
+    const drawEnd = Math.max(drawStart, span.end - inset);
+    const spanWidth = drawEnd - drawStart + 1;
+    if (spanWidth <= 0) {
       continue;
     }
 
-    const materialized = materializeLineRange(prepared, range);
-    const readableLine = justifyToWidth(materialized.text.trimEnd(), availableWidth);
-    cursor = range.end;
+    let cursor = drawStart;
+    while (cursor <= drawEnd) {
+      const word = words[wordIndex];
+      const remaining = drawEnd - cursor + 1;
+      if (remaining <= 0) {
+        break;
+      }
 
-    for (let col = 0; col < availableWidth; col += 1) {
-      output[row * cols + start + col] = readableLine[col] ?? " ";
+      if (minWordCells(word.length) > remaining) {
+        break;
+      }
+
+      const letterStep = letterStepForFit(word.length, remaining);
+      const needed = 1 + (word.length - 1) * letterStep;
+      if (needed > remaining) {
+        break;
+      }
+
+      for (let i = 0; i < word.length; i += 1) {
+        const drawCol = cursor + i * letterStep;
+        if (drawCol > drawEnd) {
+          break;
+        }
+        output[row * cols + drawCol] = word[i];
+      }
+      cursor += needed;
+      wordIndex = (wordIndex + 1) % totalWords;
+
+      const minSpaceToNextWord = minWordCells(words[wordIndex].length);
+      const remainingAfterWord = drawEnd - cursor + 1;
+      if (remainingAfterWord <= minSpaceToNextWord) {
+        break;
+      }
+
+      const gap = Math.min(preferredGap, remainingAfterWord - minSpaceToNextWord);
+      cursor += Math.max(1, gap);
     }
   }
+
   return output;
 }

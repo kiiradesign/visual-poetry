@@ -9,6 +9,9 @@ type RenderPreviewProps = {
   textColor: string;
   backgroundColor: string;
   cellSize: number;
+  lineHeight: number;
+  wordSpacing: number;
+  detailStrength: number;
 };
 
 export function RenderPreview({
@@ -17,6 +20,9 @@ export function RenderPreview({
   textColor,
   backgroundColor,
   cellSize,
+  lineHeight,
+  wordSpacing,
+  detailStrength,
 }: RenderPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const errorMessage = !poem.trim()
@@ -30,13 +36,21 @@ export function RenderPreview({
       return;
     }
 
-    const dimensions = getRenderDimensions(brightnessMap.width, brightnessMap.height, cellSize);
+    const dimensions = getRenderDimensions(
+      brightnessMap.width,
+      brightnessMap.height,
+      cellSize,
+      lineHeight
+    );
     renderToCanvas(canvasRef.current, poem, brightnessMap, dimensions, {
       cellSize,
+      lineHeight,
+      wordSpacing,
+      detailStrength,
       textColor,
       backgroundColor,
     });
-  }, [backgroundColor, brightnessMap, cellSize, poem, textColor]);
+  }, [backgroundColor, brightnessMap, cellSize, detailStrength, lineHeight, poem, textColor, wordSpacing]);
 
   return (
     <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">

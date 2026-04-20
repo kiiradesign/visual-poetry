@@ -6,6 +6,9 @@ export type BrightnessMap = {
 
 export type RenderSettings = {
   cellSize: number;
+  lineHeight: number;
+  wordSpacing: number;
+  detailStrength: number;
   textColor: string;
   backgroundColor: string;
 };

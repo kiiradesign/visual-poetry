@@ -67,9 +67,12 @@ touch pierce bleed write.`;
 
 export default function HomePage() {
   const [poem, setPoem] = useState(DEFAULT_POEM);
-  const [textColor, setTextColor] = useState("#111111");
-  const [backgroundColor, setBackgroundColor] = useState("#ffffff");
+  const [textColor, setTextColor] = useState("#ffa8a8");
+  const [backgroundColor, setBackgroundColor] = useState("#832a2a");
   const [cellSize, setCellSize] = useState(10);
+  const [lineHeight, setLineHeight] = useState(1.1);
+  const [wordSpacing, setWordSpacing] = useState(2);
+  const [detailStrength, setDetailStrength] = useState(0.65);
   const [exportScale, setExportScale] = useState(2);
   const [imageError, setImageError] = useState<string>();
   const [filename, setFilename] = useState<string>();
@@ -81,8 +84,8 @@ export default function HomePage() {
     if (!brightnessMap) {
       return null;
     }
-    return getRenderDimensions(brightnessMap.width, brightnessMap.height, cellSize);
-  }, [brightnessMap, cellSize]);
+    return getRenderDimensions(brightnessMap.width, brightnessMap.height, cellSize, lineHeight);
+  }, [brightnessMap, cellSize, lineHeight]);
 
   useEffect(() => {
     return () => {
@@ -110,7 +113,12 @@ export default function HomePage() {
     }
 
     try {
-      const nextBrightnessMap = await preprocessImage(file);
+      const viewportMaxWidth = Math.max(600, Math.floor(window.innerWidth * 0.55));
+      const viewportMaxHeight = Math.max(600, Math.floor(window.innerHeight * 0.8));
+      const nextBrightnessMap = await preprocessImage(file, {
+        maxWidth: viewportMaxWidth,
+        maxHeight: viewportMaxHeight,
+      });
       const nextPreviewUrl = URL.createObjectURL(file);
       if (imagePreviewUrl) {
         URL.revokeObjectURL(imagePreviewUrl);
@@ -141,6 +149,9 @@ export default function HomePage() {
       dimensions,
       {
         cellSize,
+        lineHeight,
+        wordSpacing,
+        detailStrength,
         textColor,
         backgroundColor,
       },
@@ -169,9 +180,15 @@ export default function HomePage() {
             textColor={textColor}
             backgroundColor={backgroundColor}
             cellSize={cellSize}
+            detailStrength={detailStrength}
+            lineHeight={lineHeight}
+            wordSpacing={wordSpacing}
             onTextColorChange={setTextColor}
             onBackgroundColorChange={setBackgroundColor}
             onCellSizeChange={setCellSize}
+            onDetailStrengthChange={setDetailStrength}
+            onLineHeightChange={setLineHeight}
+            onWordSpacingChange={setWordSpacing}
           />
           <ExportPanel
             scale={exportScale}
@@ -187,6 +204,9 @@ export default function HomePage() {
           textColor={textColor}
           backgroundColor={backgroundColor}
           cellSize={cellSize}
+          lineHeight={lineHeight}
+          wordSpacing={wordSpacing}
+          detailStrength={detailStrength}
         />
       </div>
     </main>

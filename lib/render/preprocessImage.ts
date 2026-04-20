@@ -1,9 +1,17 @@
 import { BrightnessMap } from "./types";
 
-export async function preprocessImage(file: File): Promise<BrightnessMap> {
+type PreprocessOptions = {
+  maxWidth?: number;
+  maxHeight?: number;
+};
+
+export async function preprocessImage(file: File, options?: PreprocessOptions): Promise<BrightnessMap> {
   const imageBitmap = await createImageBitmap(file);
-  const width = imageBitmap.width;
-  const height = imageBitmap.height;
+  const maxWidth = Math.max(1, options?.maxWidth ?? imageBitmap.width);
+  const maxHeight = Math.max(1, options?.maxHeight ?? imageBitmap.height);
+  const scale = Math.min(maxWidth / imageBitmap.width, maxHeight / imageBitmap.height, 1);
+  const width = Math.max(1, Math.floor(imageBitmap.width * scale));
+  const height = Math.max(1, Math.floor(imageBitmap.height * scale));
   const canvas = document.createElement("canvas");
   canvas.width = width;
   canvas.height = height;
@@ -13,7 +21,7 @@ export async function preprocessImage(file: File): Promise<BrightnessMap> {
     throw new Error("Could not initialize 2D canvas context.");
   }
 
-  context.drawImage(imageBitmap, 0, 0);
+  context.drawImage(imageBitmap, 0, 0, width, height);
   const imageData = context.getImageData(0, 0, width, height);
   const brightness = new Float32Array(width * height);
 
