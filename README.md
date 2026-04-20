@@ -36,3 +36,32 @@ File Formats: Markdown (for poem drafts) and standard image formats (JPEG/PNG) f
 Visual Poetry (Wikipedia): A comprehensive look at the history and evolution of the form, from antiquity to modern concrete poetry. [Link](https://en.wikipedia.org/wiki/Visual_poetry)
 
 Typewriter Art (The Marginalian): An exploration of how the constraints of a grid-based text system were first used to create complex imagery, which serves as the spiritual predecessor to this project. [Link](https://www.themarginalian.org/2014/05/23/typewriter-art-laurence-king/)
+
+# How to Try it Out
+## Run locally
+
+1. Install dependencies:
+   - `npm install`
+2. Start the app:
+   - `npm run dev`
+3. Open:
+   - `http://localhost:3000`
+
+## Current MVP behavior
+
+- Paste a poem and upload a JPEG/PNG reference image.
+- Pick text and background colors with color pickers.
+- Adjust cell size to control detail/performance.
+- Preview updates live.
+- Export generated output to PNG at 1x/2x/4x.
+
+## Render algorithm (MVP)
+
+1. The uploaded image is decoded and sampled into Canvas `ImageData`.
+2. A brightness map is computed from luminance (`RGB`) and alpha.
+3. The image is converted into a glyph grid using a fixed cell size.
+4. Darker image regions are filled more densely; lighter regions are left sparse.
+5. Non-empty grid cells are filled with sequential poem characters.
+6. The final composition is drawn to canvas using:
+   - IBM Plex Mono for generated glyphs
+   - User-selected text color and background color

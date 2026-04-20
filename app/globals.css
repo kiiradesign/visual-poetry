@@ -1,0 +1,27 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: var(--font-ui), sans-serif;
+  background: #f5f7fb;
+  color: #111827;
+}
+
+.font-render {
+  font-family: var(--font-render), monospace;
+}
