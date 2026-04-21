@@ -258,7 +258,10 @@ export default function HomePage() {
           <header className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl font-semibold tracking-tight">Visual Poetry</h1>
+                <h1 className="text-2xl tracking-tight">
+                  <span className="font-mono font-medium lowercase">visual</span>
+                  <span className="ml-1 font-serif italic lowercase">poetry</span>
+                </h1>
                 <p className="mt-1 text-sm text-muted-foreground">
                   Turn plain text poetry into image-guided type compositions.
                 </p>
@@ -273,39 +276,45 @@ export default function HomePage() {
             previewUrl={imagePreviewUrl}
             error={imageError}
           />
-          <ColorControls
+        </div>
+
+        <div className="space-y-4">
+          <RenderPreview
+            poem={poem}
+            brightnessMap={brightnessMap}
             textColor={textColor}
             backgroundColor={backgroundColor}
             cellSize={cellSize}
-            detailStrength={detailStrength}
             lineHeight={lineHeight}
             wordSpacing={wordSpacing}
-            onTextColorChange={handleTextColorChange}
-            onBackgroundColorChange={handleBackgroundColorChange}
-            onCellSizeChange={setCellSize}
-            onDetailStrengthChange={setDetailStrength}
-            onLineHeightChange={setLineHeight}
-            onWordSpacingChange={setWordSpacing}
+            detailStrength={detailStrength}
+            animationToken={animationToken}
           />
-          <ExportPanel
-            scale={exportScale}
-            canExport={canGenerate}
-            onScaleChange={setExportScale}
-            onExport={handleExport}
-          />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <ColorControls
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              cellSize={cellSize}
+              detailStrength={detailStrength}
+              lineHeight={lineHeight}
+              wordSpacing={wordSpacing}
+              onTextColorChange={handleTextColorChange}
+              onBackgroundColorChange={handleBackgroundColorChange}
+              onCellSizeChange={setCellSize}
+              onDetailStrengthChange={setDetailStrength}
+              onLineHeightChange={setLineHeight}
+              onWordSpacingChange={setWordSpacing}
+            />
+            <div className="space-y-4">
+              <ExportPanel
+                scale={exportScale}
+                canExport={canGenerate}
+                onScaleChange={setExportScale}
+                onExport={handleExport}
+              />
+            </div>
+          </div>
         </div>
-
-        <RenderPreview
-          poem={poem}
-          brightnessMap={brightnessMap}
-          textColor={textColor}
-          backgroundColor={backgroundColor}
-          cellSize={cellSize}
-          lineHeight={lineHeight}
-          wordSpacing={wordSpacing}
-          detailStrength={detailStrength}
-          animationToken={animationToken}
-        />
       </div>
     </main>
   );

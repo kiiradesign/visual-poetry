@@ -31,44 +31,10 @@ export function ColorControls({
   onWordSpacingChange,
 }: ColorControlsProps) {
   return (
-    <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold">Visuals</h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
-          Text color
-          <ColorPicker
-            id="text-color-picker"
-            label="Text color"
-            value={textColor}
-            onChange={onTextColorChange}
-          />
-        </label>
-        <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
-          Background color
-          <ColorPicker
-            id="background-color-picker"
-            label="Background color"
-            value={backgroundColor}
-            onChange={onBackgroundColorChange}
-          />
-        </label>
-      </div>
-      <div className="mt-3 rounded-md border border-solid border-border p-3">
-        <label className="block text-sm">
-          Details: <span className="font-semibold">{detailStrength.toFixed(2)}</span>
-          <ThemeRange
-            min={0}
-            max={1}
-            step={0.05}
-            value={detailStrength}
-            onChange={onDetailStrengthChange}
-            className="mt-2 w-full"
-            aria-label="Detail strength"
-          />
-        </label>
-      </div>
-      <h2 className="mt-4 text-sm font-semibold">Text</h2>
-      <div className="mt-3 rounded-md border border-solid border-border p-3">
+    <>
+      <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+        <h2 className="mb-2 text-xl font-semibold">Text</h2>
+        <p className="mb-4 text-sm text-muted-foreground">Adjust the properties of the rendered text.</p>
         <label className="mt-1 block text-sm">
           Text size: <span className="font-semibold">{cellSize}px</span>
           <ThemeRange
@@ -81,7 +47,7 @@ export function ColorControls({
             aria-label="Text size"
           />
         </label>
-        <label className="mt-2 block text-sm">
+        <label className="mt-3 block text-sm">
           Line height: <span className="font-semibold">{lineHeight.toFixed(2)}x</span>
           <ThemeRange
             min={0.8}
@@ -105,7 +71,43 @@ export function ColorControls({
             aria-label="Word spacing"
           />
         </label>
-      </div>
-    </section>
+      </section>
+
+      <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+        <h2 className="mb-3 text-xl font-semibold">Visuals</h2>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
+            Text color
+            <ColorPicker
+              id="text-color-picker"
+              label="Text color"
+              value={textColor}
+              onChange={onTextColorChange}
+            />
+          </label>
+          <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
+            Background color
+            <ColorPicker
+              id="background-color-picker"
+              label="Background color"
+              value={backgroundColor}
+              onChange={onBackgroundColorChange}
+            />
+          </label>
+        </div>
+        <label className="mt-3 block text-sm">
+          Details: <span className="font-semibold">{detailStrength.toFixed(2)}</span>
+          <ThemeRange
+            min={0}
+            max={1}
+            step={0.05}
+            value={detailStrength}
+            onChange={onDetailStrengthChange}
+            className="mt-2 w-full"
+            aria-label="Detail strength"
+          />
+        </label>
+      </section>
+    </>
   );
 }

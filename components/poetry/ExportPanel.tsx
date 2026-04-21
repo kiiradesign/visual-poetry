@@ -8,10 +8,10 @@ type ExportPanelProps = {
 export function ExportPanel({ scale, canExport, onScaleChange, onExport }: ExportPanelProps) {
   return (
     <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold">Export</h2>
+      <h2 className="mb-3 text-xl font-semibold">Export</h2>
       <div className="flex flex-wrap items-center gap-3">
         <label className="text-sm">
-          Resolution multiplier
+          Scale
           <select
             value={scale}
             onChange={(event) => onScaleChange(Number(event.target.value))}

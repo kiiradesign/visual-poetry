@@ -134,7 +134,7 @@ export function RenderPreview({
 
   return (
     <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold">Live preview</h2>
+      <h2 className="mb-3 text-xl font-semibold">Preview</h2>
       {errorMessage ? (
         <div
           className="flex h-80 items-center justify-center rounded-md border border-dashed border-solid border-border/80 px-6 text-center text-sm shadow-inner"
