@@ -86,6 +86,20 @@ function addWordSpacing(text: string, spacing: number): string {
   return text.split(" ").join(gap);
 }
 
+function makeLoopedText(text: string, minChars: number): string {
+  if (text.length === 0) {
+    return text;
+  }
+  const parts: string[] = [];
+  let total = 0;
+  while (total < minChars) {
+    parts.push(text);
+    // Always join with a single spacer so wrap never creates accidental hard seams.
+    total += text.length + 1;
+  }
+  return parts.join(" ");
+}
+
 export function getRenderDimensions(
   sourceWidth: number,
   sourceHeight: number,
@@ -138,7 +152,11 @@ function layoutTextGridPretext(
   const subjectThreshold = 0.145 - coverage * 0.025;
   const baseText = normalizedPoem(poem);
   const spacedText = addWordSpacing(baseText, wordSpacing);
-  const prepped = prepareWithSegments(spacedText, `400 ${cellSize}px "IBM Plex Mono", monospace`, {
+  // Build a long loop so "end-of-poem" rarely occurs during a frame. This avoids
+  // visible restart seams/glitches when the text wraps.
+  const expectedGlyphBudget = Math.max(4000, cols * rows * 6);
+  const loopedText = makeLoopedText(spacedText, expectedGlyphBudget);
+  const prepped = prepareWithSegments(loopedText, `400 ${cellSize}px "IBM Plex Mono", monospace`, {
     wordBreak: "keep-all",
   });
   const startCursor: LayoutCursor = { segmentIndex: 0, graphemeIndex: 0 };

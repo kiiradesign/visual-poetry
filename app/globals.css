@@ -141,6 +141,25 @@ body {
     @apply outline-none ring-1 ring-ring;
   }
 
+  input[type="color"].vp-color {
+    @apply h-8 w-20 cursor-pointer appearance-none rounded-md border border-solid border-input bg-transparent p-1 shadow-sm;
+  }
+
+  input[type="color"].vp-color::-webkit-color-swatch-wrapper {
+    padding: 0;
+    border: 0;
+  }
+
+  input[type="color"].vp-color::-webkit-color-swatch {
+    border: 0;
+    border-radius: calc(var(--radius) - 4px);
+  }
+
+  input[type="color"].vp-color::-moz-color-swatch {
+    border: 0;
+    border-radius: calc(var(--radius) - 4px);
+  }
+
   /* --range-fill-pct set by ThemeRange (0%–100%) for WebKit two-tone track */
   input[type="range"].vp-range {
     --range-fill-pct: 0%;

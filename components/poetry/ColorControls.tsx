@@ -35,7 +35,12 @@ export function ColorControls({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Text color
-          <input type="color" value={textColor} onChange={(e) => onTextColorChange(e.target.value)} />
+          <input
+            type="color"
+            value={textColor}
+            onChange={(e) => onTextColorChange(e.target.value)}
+            className="vp-color"
+          />
         </label>
         <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Background color
@@ -43,6 +48,7 @@ export function ColorControls({
             type="color"
             value={backgroundColor}
             onChange={(e) => onBackgroundColorChange(e.target.value)}
+            className="vp-color"
           />
         </label>
       </div>

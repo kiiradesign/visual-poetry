@@ -12,59 +12,85 @@ import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { preprocessImage } from "@/lib/render/preprocessImage";
 import { BrightnessMap } from "@/lib/render/types";
 
-const DEFAULT_POEM = `friday the thirteenth.
+const DEFAULT_POEM = `fourth of july
 
-time is not real. time is relative. time doesn't matter. but timing does.
+turbulence and iridescent clouds
 
-the girl on the train cried herself to sleep.
+mid-air nirvana
 
-where do you see yourself in 5 years? i wanna be a cool aunt. i wanna be a cat mom. i want my home to look like an art gallery. i wanna be a retired old lady that learns to crochet cute animals from her balcony on the 12th floor with the view of the lit up glass facade corporate slavery offices.
+read a book a day
 
-too early and too late at the same time but never on time.
+draw gradient snakes and lilies
 
-100 clicked apply but it's actually 1078.
+listen to pop music till your ears go numb
 
-was that mid or was i mid?
+play with a cat during a thunderstorm
 
-it is just an insect. it is a loss-making machine. it is cheap labour. it is disposable.
+fix the leaky roof
 
-why don't you do a creative job instead of a dumb tech job? if only you said these words 4 years ago, i wouldn't have subjected myself to academic masochism get myself a useless degree. it really is too late to drop out now.
+don’t fry your brain
 
-I need my daily dose of delusion. horoscope. co-star. confirmation bias. queen of denial.
+learn to build bridges.
 
-on days i write i don't text.
+cornflakes with soy milk for dinner
 
-there is a new war starting every month. every two weeks.
+metamorphosis made me cry
 
-secondhand smoke and the drinks i didn’t buy. nightmares about structural analysis. poppy seed haze and lucid dreams. zero protein diet and overdosed on carbs. hangover of guilt. sneezes that jump my soul out of my body.
+the clouds swallowing the mountains
 
-drink a rose. eat a heart. roll a heart. burn a lung. puke your guts. dry your eyes. bleed. overbleed. tranexamic acid.
+mist under the bridge
 
-plane crash in at a place i could have gone. helicopter crash at a place i should have gone.
+hundreds of unread emails
 
-1 man in ladies coach. arguing with someone on his phone very loudly. TRAIN 39. 6 men in a ladies coach. 1 angry husband arguing with his wife in public. 5 men with red eyes, definitely not sober. TRAIN 40. TRAIN 40. TRAIN 40. do something ASAP.
+an outfit with everything in its right place
 
-cancel. book. cancel. book one way.
+sleep deprived with a matcha latte and secondhand nicotine
 
-real parents. fake parents. fake cousins. made in china.
+an old lady's unsolicited useful advice
 
-photos are decaying. moisture ruined the film. memories are fading. but the camera is back.
+it is disrespectful to misspell someone’s name
 
-colonized. whitewashed. urbanized. gentrified.
+negative net worth.
 
-sugar rush and an overwhelming amount of gratitude at an impossibly hard to find japanese restaurant.
+narcissist or alternative?
 
-grammarly can go to hell.
+penguins in cape town
 
-everyone is telling you to do everything and you do nothing. you need to cut through the noise and do something.
+24th anniversary and halfway across the city
 
-diversify. fund indie films and fund wars. sit with a crazy lady while tying your shoelaces. return someone’s book after 5 years. live in a traffic engineering nightmare. don’t read the news because AI wrote it.
+literally bipolar
 
-tap scroll swipe type
+go and touch some moss
 
-see blink click draw
+ride the raging river waves on a surfboard
 
-touch pierce bleed write.`;
+stranded on the other side
+
+pack up and leave
+
+this is how to disappear completely`;
+
+const STORAGE_IMAGE_KEY = "visual-poetry-uploaded-image";
+
+type StoredImagePayload = {
+  name: string;
+  dataUrl: string;
+};
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        reject(new Error("Failed to read image as data URL."));
+      }
+    };
+    reader.onerror = () => reject(reader.error ?? new Error("Failed to read image."));
+    reader.readAsDataURL(file);
+  });
+}
 
 export default function HomePage() {
   const [poem, setPoem] = useState(DEFAULT_POEM);
@@ -79,6 +105,7 @@ export default function HomePage() {
   const [filename, setFilename] = useState<string>();
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>();
   const [brightnessMap, setBrightnessMap] = useState<BrightnessMap | null>(null);
+  const [animationToken, setAnimationToken] = useState(0);
 
   const canGenerate = poem.trim().length > 0 && brightnessMap !== null;
   const dimensions = useMemo(() => {
@@ -96,7 +123,32 @@ export default function HomePage() {
     };
   }, [imagePreviewUrl]);
 
-  async function handleImageSelection(file: File | null) {
+  useEffect(() => {
+    async function restoreStoredImage() {
+      try {
+        const raw = window.localStorage.getItem(STORAGE_IMAGE_KEY);
+        if (!raw) {
+          return;
+        }
+        const parsed = JSON.parse(raw) as StoredImagePayload;
+        if (!parsed?.dataUrl || !parsed?.name) {
+          return;
+        }
+        const response = await fetch(parsed.dataUrl);
+        const blob = await response.blob();
+        const restoredFile = new File([blob], parsed.name, { type: blob.type || "image/png" });
+        await handleImageSelection(restoredFile, false);
+      } catch {
+        window.localStorage.removeItem(STORAGE_IMAGE_KEY);
+      }
+    }
+
+    void restoreStoredImage();
+    // Intentionally run once on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function handleImageSelection(file: File | null, persist: boolean = true) {
     if (!file) {
       if (imagePreviewUrl) {
         URL.revokeObjectURL(imagePreviewUrl);
@@ -105,6 +157,7 @@ export default function HomePage() {
       setFilename(undefined);
       setImagePreviewUrl(undefined);
       setImageError(undefined);
+      window.localStorage.removeItem(STORAGE_IMAGE_KEY);
       return;
     }
 
@@ -128,6 +181,12 @@ export default function HomePage() {
       setFilename(file.name);
       setImagePreviewUrl(nextPreviewUrl);
       setImageError(undefined);
+      setAnimationToken(Date.now());
+      if (persist) {
+        const dataUrl = await fileToDataUrl(file);
+        const payload: StoredImagePayload = { name: file.name, dataUrl };
+        window.localStorage.setItem(STORAGE_IMAGE_KEY, JSON.stringify(payload));
+      }
     } catch {
       if (imagePreviewUrl) {
         URL.revokeObjectURL(imagePreviewUrl);
@@ -136,6 +195,7 @@ export default function HomePage() {
       setFilename(undefined);
       setImagePreviewUrl(undefined);
       setImageError("Could not process the image. Try another file.");
+      window.localStorage.removeItem(STORAGE_IMAGE_KEY);
     }
   }
 
@@ -213,6 +273,7 @@ export default function HomePage() {
           lineHeight={lineHeight}
           wordSpacing={wordSpacing}
           detailStrength={detailStrength}
+          animationToken={animationToken}
         />
       </div>
     </main>
