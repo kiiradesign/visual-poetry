@@ -12,7 +12,7 @@ const ibmPlexSans = IBM_Plex_Sans({
 const ibmPlexMono = IBM_Plex_Mono({
   variable: "--font-render",
   subsets: ["latin"],
-  weight: ["400", "500"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {

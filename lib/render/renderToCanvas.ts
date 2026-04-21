@@ -36,7 +36,9 @@ export function renderToCanvas(
     dimensions.rows,
     settings.cellSize,
     settings.wordSpacing,
-    settings.detailStrength
+    settings.detailStrength,
+    settings.coverageBalance,
+    settings.layoutMode
   );
   const rowStep = Math.max(1, Math.floor(settings.cellSize * settings.lineHeight));
   const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
@@ -46,6 +48,7 @@ export function renderToCanvas(
   context.textAlign = "left";
 
   const tonalSignals = new Float32Array(dimensions.cols * dimensions.rows);
+  const localContrasts = new Float32Array(dimensions.cols * dimensions.rows);
   let minSignal = Number.POSITIVE_INFINITY;
   let maxSignal = Number.NEGATIVE_INFINITY;
 
@@ -63,6 +66,7 @@ export function renderToCanvas(
         dimensions.rows
       );
       const contrast = Math.abs(brightness - backgroundBrightness);
+      localContrasts[row * dimensions.cols + col] = contrast;
       const tonalSignal = Math.max(0, Math.min(1, (1 - brightness) * 0.8 + contrast * 1.4));
       tonalSignals[row * dimensions.cols + col] = tonalSignal;
       minSignal = Math.min(minSignal, tonalSignal);
@@ -72,15 +76,28 @@ export function renderToCanvas(
 
   const signalRange = Math.max(0.0001, maxSignal - minSignal);
   const sliderStrength = Math.max(0, Math.min(1, settings.detailStrength));
+  const coverageBalance = Math.max(0, Math.min(1, settings.coverageBalance));
+  const usingPretextLayout = settings.layoutMode === "pretext";
+  let currentWeight = 400;
+
+  function quantizedWeight(normalizedSignal: number): number {
+    // Keep glyphs readable while still conveying detail through stroke density.
+    // Quantized to available font files loaded in next/font.
+    const minWeight = 300;
+    const maxWeight = 700;
+    const raw = minWeight + normalizedSignal * (maxWeight - minWeight);
+    return Math.round(raw / 100) * 100;
+  }
 
   for (let row = 0; row < dimensions.rows; row += 1) {
     for (let col = 0; col < dimensions.cols; col += 1) {
       const glyph = glyphs[row * dimensions.cols + col];
       if (glyph !== " ") {
+        const localContrast = localContrasts[row * dimensions.cols + col];
         const signal = tonalSignals[row * dimensions.cols + col];
         const normalized = Math.max(0, Math.min(1, (signal - minSignal) / signalRange));
         const curved = Math.pow(normalized, 0.72);
-        const contrastBoost = 1 + sliderStrength * 4.8;
+        const contrastBoost = 1 + sliderStrength * (usingPretextLayout ? 3.1 : 4.8);
         let contrasted = Math.max(0, Math.min(1, (curved - 0.5) * contrastBoost + 0.5));
 
         // At high detail, push toward monochrome ASCII-style tonal bands.
@@ -90,16 +107,30 @@ export function renderToCanvas(
           const quantized = Math.round(contrasted * levels) / levels;
           const dither = ((row * 17 + col * 31) % 97) / 97;
           const thresholded = quantized > dither ? 1 : quantized;
-          contrasted = quantized * (1 - highDetail * 0.35) + thresholded * (highDetail * 0.35);
+          const thresholdMix = usingPretextLayout ? highDetail * 0.18 : highDetail * 0.35;
+          contrasted = quantized * (1 - thresholdMix) + thresholded * thresholdMix;
         }
 
         // 0.0 => near-uniform opacity, 1.0 => strong monochrome-like variation.
-        const baseAlpha = 0.78;
-        const minAlpha = 0.02;
+        // Never let glyphs disappear entirely; thinned + faint is preferred.
+        const baseAlpha = usingPretextLayout ? 0.9 : 0.78;
+        const minAlpha = usingPretextLayout ? 0.16 : 0.14;
         const maxAlpha = 1;
         const contrastedAlpha = minAlpha + (maxAlpha - minAlpha) * contrasted;
-        const alpha = baseAlpha + (contrastedAlpha - baseAlpha) * sliderStrength;
-        context.globalAlpha = Math.max(0.02, Math.min(1, alpha));
+        let alpha = baseAlpha + (contrastedAlpha - baseAlpha) * sliderStrength;
+        // Coverage-heavy mode keeps more glyphs visible; detail-heavy mode can fade
+        // weak-contrast zones, but never to zero.
+        if (usingPretextLayout) {
+          const haloFade = Math.max(0, Math.min(1, (localContrast - 0.05) / 0.2));
+          const fadeStrength = (1 - coverageBalance) * 0.12;
+          alpha *= 1 - (1 - haloFade) * fadeStrength;
+        }
+        const targetWeight = quantizedWeight(normalized);
+        if (targetWeight !== currentWeight) {
+          currentWeight = targetWeight;
+          context.font = `${currentWeight} ${settings.cellSize}px "IBM Plex Mono", monospace`;
+        }
+        context.globalAlpha = Math.max(minAlpha, Math.min(1, alpha));
         context.fillText(glyph, col * settings.cellSize, row * rowStep);
       }
     }
