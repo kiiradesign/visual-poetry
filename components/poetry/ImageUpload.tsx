@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 type ImageUploadProps = {
   onSelect: (file: File | null) => void;
   filename?: string;
@@ -28,14 +26,13 @@ export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUplo
       </p>
       {previewUrl ? (
         <div className="mt-3 overflow-hidden rounded-md border border-solid border-border bg-muted p-2">
-          <Image
-            src={previewUrl}
-            alt={filename ? `${filename} preview` : "Reference image preview"}
-            width={320}
-            height={112}
-            unoptimized
-            className="h-28 w-full rounded object-cover"
-          />
+          <div className="flex h-28 w-full items-center justify-center overflow-hidden rounded bg-background/40">
+            <img
+              src={previewUrl}
+              alt={filename ? `${filename} preview` : "Reference image preview"}
+              className="block max-h-full max-w-full object-contain object-center"
+            />
+          </div>
         </div>
       ) : null}
       {error ? <p className="mt-2 text-xs text-destructive">{error}</p> : null}

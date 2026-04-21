@@ -1,4 +1,5 @@
 import { ThemeRange } from "@/components/theme-range";
+import { ColorPicker } from "@/components/ui/color-picker";
 
 type ColorControlsProps = {
   textColor: string;
@@ -35,20 +36,20 @@ export function ColorControls({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Text color
-          <input
-            type="color"
+          <ColorPicker
+            id="text-color-picker"
+            label="Text color"
             value={textColor}
-            onChange={(e) => onTextColorChange(e.target.value)}
-            className="vp-color"
+            onChange={onTextColorChange}
           />
         </label>
         <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Background color
-          <input
-            type="color"
+          <ColorPicker
+            id="background-color-picker"
+            label="Background color"
             value={backgroundColor}
-            onChange={(e) => onBackgroundColorChange(e.target.value)}
-            className="vp-color"
+            onChange={onBackgroundColorChange}
           />
         </label>
       </div>

@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useTheme } from "next-themes";
 import { ColorControls } from "@/components/poetry/ColorControls";
 import { ExportPanel } from "@/components/poetry/ExportPanel";
 import { ImageUpload } from "@/components/poetry/ImageUpload";
@@ -70,6 +71,11 @@ pack up and leave
 
 this is how to disappear completely`;
 
+const LIGHT_MODE_TEXT = "#2D2926"; // ink black
+const LIGHT_MODE_BACKGROUND = "#F4F1EA"; // warm paper
+const DARK_MODE_TEXT = "#E6EEF2"; // pale blue-white
+const DARK_MODE_BACKGROUND = "#003153"; // Prussian blue
+
 const STORAGE_IMAGE_KEY = "visual-poetry-uploaded-image";
 
 type StoredImagePayload = {
@@ -93,9 +99,10 @@ function fileToDataUrl(file: File): Promise<string> {
 }
 
 export default function HomePage() {
+  const { resolvedTheme } = useTheme();
   const [poem, setPoem] = useState(DEFAULT_POEM);
-  const [textColor, setTextColor] = useState("#ffa8a8");
-  const [backgroundColor, setBackgroundColor] = useState("#1d0202");
+  const [textColor, setTextColor] = useState(LIGHT_MODE_TEXT);
+  const [backgroundColor, setBackgroundColor] = useState(LIGHT_MODE_BACKGROUND);
   const [cellSize, setCellSize] = useState(10);
   const [lineHeight, setLineHeight] = useState(1.1);
   const [wordSpacing, setWordSpacing] = useState(2);
@@ -106,6 +113,7 @@ export default function HomePage() {
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>();
   const [brightnessMap, setBrightnessMap] = useState<BrightnessMap | null>(null);
   const [animationToken, setAnimationToken] = useState(0);
+  const userCustomizedColorsRef = useRef(false);
 
   const canGenerate = poem.trim().length > 0 && brightnessMap !== null;
   const dimensions = useMemo(() => {
@@ -122,6 +130,29 @@ export default function HomePage() {
       }
     };
   }, [imagePreviewUrl]);
+
+  useEffect(() => {
+    if (userCustomizedColorsRef.current) {
+      return;
+    }
+    if (resolvedTheme === "dark") {
+      setTextColor(DARK_MODE_TEXT);
+      setBackgroundColor(DARK_MODE_BACKGROUND);
+      return;
+    }
+    setTextColor(LIGHT_MODE_TEXT);
+    setBackgroundColor(LIGHT_MODE_BACKGROUND);
+  }, [resolvedTheme]);
+
+  function handleTextColorChange(value: string) {
+    userCustomizedColorsRef.current = true;
+    setTextColor(value);
+  }
+
+  function handleBackgroundColorChange(value: string) {
+    userCustomizedColorsRef.current = true;
+    setBackgroundColor(value);
+  }
 
   useEffect(() => {
     async function restoreStoredImage() {
@@ -249,8 +280,8 @@ export default function HomePage() {
             detailStrength={detailStrength}
             lineHeight={lineHeight}
             wordSpacing={wordSpacing}
-            onTextColorChange={setTextColor}
-            onBackgroundColorChange={setBackgroundColor}
+            onTextColorChange={handleTextColorChange}
+            onBackgroundColorChange={handleBackgroundColorChange}
             onCellSizeChange={setCellSize}
             onDetailStrengthChange={setDetailStrength}
             onLineHeightChange={setLineHeight}

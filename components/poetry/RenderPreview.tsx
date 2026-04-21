@@ -150,7 +150,7 @@ export function RenderPreview({
           {dimensions ? (
             <div
               key={`preview-${animationToken}`}
-              className="font-render relative"
+              className="font-render relative mx-auto"
               style={{ width: dimensions.width, height: dimensions.height }}
             >
               {glyphs.map((point, index) => (
