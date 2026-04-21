@@ -1,23 +1,18 @@
 import { ThemeRange } from "@/components/theme-range";
-import { LayoutMode } from "@/lib/render/types";
 
 type ColorControlsProps = {
   textColor: string;
   backgroundColor: string;
   cellSize: number;
   detailStrength: number;
-  coverageBalance: number;
   lineHeight: number;
   wordSpacing: number;
-  layoutMode: LayoutMode;
   onTextColorChange: (value: string) => void;
   onBackgroundColorChange: (value: string) => void;
   onCellSizeChange: (value: number) => void;
   onDetailStrengthChange: (value: number) => void;
-  onCoverageBalanceChange: (value: number) => void;
   onLineHeightChange: (value: number) => void;
   onWordSpacingChange: (value: number) => void;
-  onLayoutModeChange: (value: LayoutMode) => void;
 };
 
 export function ColorControls({
@@ -25,22 +20,18 @@ export function ColorControls({
   backgroundColor,
   cellSize,
   detailStrength,
-  coverageBalance,
   lineHeight,
   wordSpacing,
-  layoutMode,
   onTextColorChange,
   onBackgroundColorChange,
   onCellSizeChange,
   onDetailStrengthChange,
-  onCoverageBalanceChange,
   onLineHeightChange,
   onWordSpacingChange,
-  onLayoutModeChange,
 }: ColorControlsProps) {
   return (
     <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="mb-3 text-sm font-semibold">Visual controls</h2>
+      <h2 className="mb-3 text-sm font-semibold">Visuals</h2>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <label className="flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
           Text color
@@ -54,21 +45,22 @@ export function ColorControls({
             onChange={(e) => onBackgroundColorChange(e.target.value)}
           />
         </label>
-        <label className="flex items-center justify-between gap-2 rounded-md border border-solid border-border px-3 py-2 text-sm sm:col-span-2">
-          Layout mode
-          <select
-            value={layoutMode}
-            onChange={(event) => onLayoutModeChange(event.target.value as LayoutMode)}
-            className="vp-field h-9 rounded-md px-2 py-1 text-sm"
-          >
-            <option value="pretext">Pretext (new)</option>
-            <option value="legacy">Legacy (previous)</option>
-          </select>
+      </div>
+      <div className="mt-3 rounded-md border border-solid border-border p-3">
+        <label className="block text-sm">
+          Details: <span className="font-semibold">{detailStrength.toFixed(2)}</span>
+          <ThemeRange
+            min={0}
+            max={1}
+            step={0.05}
+            value={detailStrength}
+            onChange={onDetailStrengthChange}
+            className="mt-2 w-full"
+            aria-label="Detail strength"
+          />
         </label>
       </div>
-      <label className="mt-4 flex items-center justify-between rounded-md border border-solid border-border px-3 py-2 text-sm">
-        <span className="font-medium">Text details</span>
-      </label>
+      <h2 className="mt-4 text-sm font-semibold">Text</h2>
       <div className="mt-3 rounded-md border border-solid border-border p-3">
         <label className="mt-1 block text-sm">
           Text size: <span className="font-semibold">{cellSize}px</span>
@@ -80,30 +72,6 @@ export function ColorControls({
             onChange={onCellSizeChange}
             className="mt-2 w-full"
             aria-label="Text size"
-          />
-        </label>
-        <label className="mt-3 block text-sm">
-          Detail: <span className="font-semibold">{detailStrength.toFixed(2)}</span>
-          <ThemeRange
-            min={0}
-            max={1}
-            step={0.05}
-            value={detailStrength}
-            onChange={onDetailStrengthChange}
-            className="mt-2 w-full"
-            aria-label="Detail strength"
-          />
-        </label>
-        <label className="mt-2 block text-sm">
-          Coverage vs detail: <span className="font-semibold">{coverageBalance.toFixed(2)}</span>
-          <ThemeRange
-            min={0}
-            max={1}
-            step={0.05}
-            value={coverageBalance}
-            onChange={onCoverageBalanceChange}
-            className="mt-2 w-full"
-            aria-label="Coverage versus detail"
           />
         </label>
         <label className="mt-2 block text-sm">

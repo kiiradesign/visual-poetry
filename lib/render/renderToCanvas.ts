@@ -35,10 +35,7 @@ export function renderToCanvas(
     dimensions.cols,
     dimensions.rows,
     settings.cellSize,
-    settings.wordSpacing,
-    settings.detailStrength,
-    settings.coverageBalance,
-    settings.layoutMode
+    settings.wordSpacing
   );
   const rowStep = Math.max(1, Math.floor(settings.cellSize * settings.lineHeight));
   const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
@@ -76,8 +73,8 @@ export function renderToCanvas(
 
   const signalRange = Math.max(0.0001, maxSignal - minSignal);
   const sliderStrength = Math.max(0, Math.min(1, settings.detailStrength));
-  const coverageBalance = Math.max(0, Math.min(1, settings.coverageBalance));
-  const usingPretextLayout = settings.layoutMode === "pretext";
+  const coverageBalance = 0.7;
+  const usingPretextLayout = true;
   let currentWeight = 400;
 
   function quantizedWeight(normalizedSignal: number): number {

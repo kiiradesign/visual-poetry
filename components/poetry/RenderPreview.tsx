@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { renderToCanvas } from "@/lib/render/renderToCanvas";
-import { BrightnessMap, LayoutMode } from "@/lib/render/types";
+import { BrightnessMap } from "@/lib/render/types";
 
 type RenderPreviewProps = {
   poem: string;
@@ -12,8 +12,6 @@ type RenderPreviewProps = {
   lineHeight: number;
   wordSpacing: number;
   detailStrength: number;
-  coverageBalance: number;
-  layoutMode: LayoutMode;
 };
 
 export function RenderPreview({
@@ -25,8 +23,6 @@ export function RenderPreview({
   lineHeight,
   wordSpacing,
   detailStrength,
-  coverageBalance,
-  layoutMode,
 }: RenderPreviewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const errorMessage = !poem.trim()
@@ -51,18 +47,14 @@ export function RenderPreview({
       lineHeight,
       wordSpacing,
       detailStrength,
-      coverageBalance,
       textColor,
       backgroundColor,
-      layoutMode,
     });
   }, [
     backgroundColor,
     brightnessMap,
     cellSize,
-    coverageBalance,
     detailStrength,
-    layoutMode,
     lineHeight,
     poem,
     textColor,

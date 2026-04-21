@@ -10,7 +10,7 @@ import { ThemeToggle } from "@/components/theme-toggle";
 import { exportPng } from "@/lib/render/exportPng";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { preprocessImage } from "@/lib/render/preprocessImage";
-import { BrightnessMap, LayoutMode } from "@/lib/render/types";
+import { BrightnessMap } from "@/lib/render/types";
 
 const DEFAULT_POEM = `friday the thirteenth.
 
@@ -74,8 +74,6 @@ export default function HomePage() {
   const [lineHeight, setLineHeight] = useState(1.1);
   const [wordSpacing, setWordSpacing] = useState(2);
   const [detailStrength, setDetailStrength] = useState(0.65);
-  const [coverageBalance, setCoverageBalance] = useState(0.5);
-  const [layoutMode, setLayoutMode] = useState<LayoutMode>("pretext");
   const [exportScale, setExportScale] = useState(2);
   const [imageError, setImageError] = useState<string>();
   const [filename, setFilename] = useState<string>();
@@ -155,10 +153,8 @@ export default function HomePage() {
         lineHeight,
         wordSpacing,
         detailStrength,
-        coverageBalance,
         textColor,
         backgroundColor,
-        layoutMode,
       },
       exportScale
     );
@@ -191,18 +187,14 @@ export default function HomePage() {
             backgroundColor={backgroundColor}
             cellSize={cellSize}
             detailStrength={detailStrength}
-            coverageBalance={coverageBalance}
             lineHeight={lineHeight}
             wordSpacing={wordSpacing}
-            layoutMode={layoutMode}
             onTextColorChange={setTextColor}
             onBackgroundColorChange={setBackgroundColor}
             onCellSizeChange={setCellSize}
             onDetailStrengthChange={setDetailStrength}
-            onCoverageBalanceChange={setCoverageBalance}
             onLineHeightChange={setLineHeight}
             onWordSpacingChange={setWordSpacing}
-            onLayoutModeChange={setLayoutMode}
           />
           <ExportPanel
             scale={exportScale}
@@ -221,8 +213,6 @@ export default function HomePage() {
           lineHeight={lineHeight}
           wordSpacing={wordSpacing}
           detailStrength={detailStrength}
-          coverageBalance={coverageBalance}
-          layoutMode={layoutMode}
         />
       </div>
     </main>

@@ -4,7 +4,7 @@ import {
   prepareWithSegments,
   type LayoutCursor,
 } from "@chenglou/pretext";
-import { BrightnessMap, LayoutMode, RenderDimensions } from "./types";
+import { BrightnessMap, RenderDimensions } from "./types";
 
 function normalizedPoem(poem: string): string {
   const compact = poem
@@ -86,21 +86,6 @@ function addWordSpacing(text: string, spacing: number): string {
   return text.split(" ").join(gap);
 }
 
-function minWordCells(wordLength: number): number {
-  return Math.max(1, wordLength);
-}
-
-function letterStepForFit(wordLength: number, remaining: number): number {
-  if (wordLength <= 1) {
-    return 1;
-  }
-  const needed = wordLength;
-  if (needed <= remaining) {
-    return 1;
-  }
-  return 1;
-}
-
 export function getRenderDimensions(
   sourceWidth: number,
   sourceHeight: number,
@@ -124,22 +109,9 @@ export function layoutTextGrid(
   cols: number,
   rows: number,
   cellSize: number,
-  wordSpacing: number,
-  detailStrength: number,
-  coverageBalance: number = 0.5,
-  layoutMode: LayoutMode = "pretext"
+  wordSpacing: number
 ): string[] {
-  if (layoutMode === "legacy") {
-    return layoutTextGridLegacy(
-      poem,
-      brightnessMap,
-      cols,
-      rows,
-      wordSpacing,
-      detailStrength,
-      coverageBalance
-    );
-  }
+  const coverageBalance = 0.7;
   return layoutTextGridPretext(
     poem,
     brightnessMap,
@@ -147,7 +119,6 @@ export function layoutTextGrid(
     rows,
     cellSize,
     wordSpacing,
-    detailStrength,
     coverageBalance
   );
 }
@@ -159,7 +130,6 @@ function layoutTextGridPretext(
   rows: number,
   cellSize: number,
   wordSpacing: number,
-  detailStrength: number,
   coverageBalance: number
 ): string[] {
   const output: string[] = new Array(cols * rows).fill(" ");
@@ -369,78 +339,6 @@ function layoutTextGridPretext(
       continue;
     }
     cursor = activeLine.end;
-  }
-
-  return output;
-}
-
-function layoutTextGridLegacy(
-  poem: string,
-  brightnessMap: BrightnessMap,
-  cols: number,
-  rows: number,
-  wordSpacing: number,
-  detailStrength: number,
-  coverageBalance: number
-): string[] {
-  const output: string[] = new Array(cols * rows).fill(" ");
-  const words = normalizedPoem(poem).split(" ");
-  let wordIndex = 0;
-  const totalWords = words.length;
-  const detailBias = Math.min(1, Math.max(0, detailStrength));
-  const preferredGap = Math.max(1, Math.round(wordSpacing));
-
-  for (let row = 0; row < rows; row += 1) {
-    const span = rowSpanFromBrightness(brightnessMap, row, cols, rows, coverageBalance);
-    if (!span) {
-      continue;
-    }
-
-    const inset = Math.max(1, Math.round((1 - detailBias) * 2));
-    const drawStart = Math.min(cols - 1, span.start + inset);
-    const drawEnd = Math.max(drawStart, span.end - inset);
-    const spanWidth = drawEnd - drawStart + 1;
-    if (spanWidth <= 0) {
-      continue;
-    }
-
-    let cursor = drawStart;
-    while (cursor <= drawEnd) {
-      const word = words[wordIndex];
-      const remaining = drawEnd - cursor + 1;
-      if (remaining <= 0) {
-        break;
-      }
-
-      if (minWordCells(word.length) > remaining) {
-        break;
-      }
-
-      const letterStep = letterStepForFit(word.length, remaining);
-      const needed = 1 + (word.length - 1) * letterStep;
-      if (needed > remaining) {
-        break;
-      }
-
-      for (let i = 0; i < word.length; i += 1) {
-        const drawCol = cursor + i * letterStep;
-        if (drawCol > drawEnd) {
-          break;
-        }
-        output[row * cols + drawCol] = word[i];
-      }
-      cursor += needed;
-      wordIndex = (wordIndex + 1) % totalWords;
-
-      const minSpaceToNextWord = minWordCells(words[wordIndex].length);
-      const remainingAfterWord = drawEnd - cursor + 1;
-      if (remainingAfterWord <= minSpaceToNextWord) {
-        break;
-      }
-
-      const gap = Math.min(preferredGap, remainingAfterWord - minSpaceToNextWord);
-      cursor += Math.max(1, gap);
-    }
   }
 
   return output;
