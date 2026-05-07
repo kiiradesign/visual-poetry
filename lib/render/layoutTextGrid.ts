@@ -100,6 +100,10 @@ function makeLoopedText(text: string, minChars: number): string {
   return parts.join(" ");
 }
 
+function trackingVariantSeed(row: number, runStart: number, wordLength: number): number {
+  return (row * 131 + runStart * 67 + wordLength * 29) % 1009;
+}
+
 export function getRenderDimensions(
   sourceWidth: number,
   sourceHeight: number,
@@ -202,11 +206,18 @@ function layoutTextGridPretext(
       return { placed: false, nextCursor: cursorCol };
     }
 
-    // Per-word tracking is uniform inside each word.
-    // Keep it bounded so intra-word spacing never exceeds inter-word spacing.
+    // Per-word tracking varies by row/run to avoid overly uniform glyph cadence,
+    // while staying bounded so words still fit silhouette runs reliably.
     const maxStepByWordGap = Math.max(1, preferredGap + 1);
-    const maxVisualStep = 2;
-    let letterStep = Math.min(maxVisualStep, maxStepByWordGap);
+    const maxVisualStep = word.length >= 6 ? 3 : 2;
+    const maxTrackingStep = Math.min(maxVisualStep, maxStepByWordGap);
+    const seed = trackingVariantSeed(row, runStart, word.length);
+    let letterStep = 1;
+    if (maxTrackingStep >= 3 && seed % 11 < 3) {
+      letterStep = 3;
+    } else if (maxTrackingStep >= 2 && seed % 7 < 3) {
+      letterStep = 2;
+    }
     while (letterStep > 1) {
       const needed = 1 + (word.length - 1) * letterStep;
       if (needed <= remaining) {
@@ -311,9 +322,20 @@ function layoutTextGridPretext(
 
     for (const run of runs) {
       let cursorCol = run.start;
+      const runWidth = run.end - run.start + 1;
+      if (runWidth >= 10) {
+        const stagger = (row * 13 + run.start * 7) % 2;
+        cursorCol = Math.min(run.end, run.start + stagger);
+      }
       while (wordIndex < words.length) {
         const word = words[wordIndex];
-        const placement = placeWordWithTracking(row, run.start, run.end, cursorCol, word, preferredGap);
+        let placement = placeWordWithTracking(row, run.start, run.end, cursorCol, word, preferredGap);
+        if (!placement.placed && cursorCol !== run.start) {
+          // If stagger start doesn't fit, retry from original run start so
+          // we preserve text density.
+          cursorCol = run.start;
+          placement = placeWordWithTracking(row, run.start, run.end, cursorCol, word, preferredGap);
+        }
         if (!placement.placed) {
           // Allow soft word continuation (without hyphen) when a run has room for
           // only part of the current word. Remainder continues on the next run/row.

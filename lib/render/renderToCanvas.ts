@@ -12,6 +12,12 @@ function estimateBackgroundBrightness(brightnessMap: BrightnessMap): number {
   return corners.reduce((sum, value) => sum + value, 0) / corners.length;
 }
 
+function antiBandingJitter(col: number, row: number, amplitude: number): number {
+  const hash = (row * 92821 + col * 68917) % 997;
+  const normalized = hash / 996;
+  return (normalized * 2 - 1) * amplitude;
+}
+
 export function renderToCanvas(
   canvas: HTMLCanvasElement,
   poem: string,
@@ -73,6 +79,7 @@ export function renderToCanvas(
 
   const signalRange = Math.max(0.0001, maxSignal - minSignal);
   const sliderStrength = Math.max(0, Math.min(1, settings.detailStrength));
+  const jitterAmplitude = Math.min(0.9, settings.cellSize * 0.12);
   const coverageBalance = 0.7;
   const usingPretextLayout = true;
   let currentWeight = 400;
@@ -128,7 +135,8 @@ export function renderToCanvas(
           context.font = `${currentWeight} ${settings.cellSize}px "IBM Plex Mono", monospace`;
         }
         context.globalAlpha = Math.max(minAlpha, Math.min(1, alpha));
-        context.fillText(glyph, col * settings.cellSize, row * rowStep);
+        const jitterX = antiBandingJitter(col, row, jitterAmplitude);
+        context.fillText(glyph, col * settings.cellSize + jitterX, row * rowStep);
       }
     }
   }

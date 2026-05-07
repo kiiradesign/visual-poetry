@@ -13,6 +13,7 @@ This project aims to reunite the draft with its visual soul. By using a poem's w
 - Poetry Input: Copy and paste raw markdown or text drafts directly into the editor.
 - Visual Reference: Upload a reference image (e.g., a photo of a specific flower or insect) to guide the layout and color palette.
 - Text-as-Pixel Rendering: Uses `@chenglou/pretext` only (legacy mode removed), with silhouette-constrained packing and seamless text looping.
+- Anti-banding Text Placement: Reduces vertical line artifacts via deterministic run staggering and sub-cell glyph jitter while preserving silhouette coverage.
 - Detail Controls: Sliders for details, text size, line height, and word spacing.
 - Dark/Light Theming: shadcn token-based theme with mode toggle and consistent component styling.
 - Theme-aware Defaults: Light mode defaults to warm paper/ink (`#F4F1EA` / `#2D2926`) and dark mode to Prussian blue/pale blue-white (`#003153` / `#E6EEF2`).
@@ -69,11 +70,78 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
   - glyphs are packed into contiguous subject runs with adaptive tracking
   - if needed, words can continue on the next run/line without hyphenation
   - line widths are iteratively narrowed and reflowed to maximize in-mask coverage
+  - run starts are deterministically staggered (with fallback) to avoid repeated column locking
+  - per-glyph horizontal jitter (sub-cell offset) breaks residual vertical banding without reducing fill
+  - intra-word tracking now varies by row/run/word seed for more organic cadence and texture
 5. Per-glyph visual detail is computed from local brightness contrast:
   - opacity is varied but clamped so glyphs do not fully disappear
   - IBM Plex Mono weight is quantized (`300..700`) to add stroke-density detail
 6. Preview rendering uses positioned glyph spans (`framer-motion`) for controlled animation timing.
 7. Export rendering uses canvas with the same layout and color settings for PNG output parity.
+
+## The Algorithm
+
+This tool does **structured text packing**, not character replacement. The reference image is first analyzed into a tonal field and silhouette bounds, then poem text is continuously reflowed into those bounds with spacing and tracking rules that preserve both shape and texture.
+
+### 1) Image analysis before shaping
+
+Before any glyph is placed:
+
+1. The uploaded image is decoded into Canvas pixel data (`ImageData`).
+2. Each pixel is converted into normalized luminance (`0..1`) with alpha awareness.
+3. A background baseline is estimated from image corners.
+4. For each render row, the algorithm detects subject spans by measuring contrast against that background baseline.
+5. The image is then sampled in grid space (`cols x rows`) so every candidate glyph cell can query local brightness.
+
+This means the shape is not guessed from text; it is constrained by measured image structure first, then filled by poem flow.
+
+### 2) Text flow and silhouette packing
+
+For each row:
+
+- The poem is normalized into a looped text stream so the composition does not visibly "restart."
+- `@chenglou/pretext` proposes line fragments for the current available width.
+- Width is iteratively narrowed when needed so words can actually fit inside detected subject runs.
+- Words are placed into contiguous runs with adaptive letter-step tracking.
+- If a run is too short for a full word, soft continuation to the next run/row is allowed (without hyphen insertion).
+
+This is why the output keeps poem continuity while still respecting the image silhouette.
+
+### 3) Anti-banding + texture variation
+
+To avoid vertical striping and overly mechanical cadence:
+
+- run starts are deterministically staggered (with fallback to run start if fit fails),
+- each glyph gets a tiny deterministic horizontal sub-cell jitter,
+- intra-word tracking varies by row/run/word seed (bounded by fit constraints).
+
+All of these are deterministic, so the same input/settings produce stable results in preview and export.
+
+### 4) Opacity and stroke control
+
+After glyph positions are fixed, each glyph receives style from local tone:
+
+- brightness is sampled at the glyph cell,
+- local contrast from background is computed,
+- a tonal signal is derived and normalized across placed glyphs,
+- opacity is curved and clamped (so glyphs never fully disappear),
+- font weight is quantized (`300..700`) to add stroke-density variation.
+
+So the image detail is encoded through both **alpha** and **stroke weight**, not only glyph presence/absence.
+
+### 5) Why this is different from classic ASCII art
+
+Classic ASCII art usually maps brightness to a fixed character ramp on a rigid grid (`@%#*+=-:.`), where each cell picks one symbol independently.
+
+This system instead:
+
+- uses your poem text as the source material,
+- preserves word flow across the frame,
+- packs text inside silhouette runs,
+- modulates opacity/weight continuously,
+- and introduces controlled micro-irregularity (like physical typing rhythm).
+
+That makes it closer to **typewriter art** than terminal ASCII: constrained, grid-aware, textural mark-making with language-driven material rather than static symbol substitution.
 
 ## Theming Notes
 

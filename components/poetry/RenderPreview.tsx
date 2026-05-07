@@ -26,6 +26,12 @@ function estimateBackgroundBrightness(brightnessMap: BrightnessMap): number {
   return corners.reduce((sum, value) => sum + value, 0) / corners.length;
 }
 
+function antiBandingJitter(col: number, row: number, amplitude: number): number {
+  const hash = (row * 92821 + col * 68917) % 997;
+  const normalized = hash / 996;
+  return (normalized * 2 - 1) * amplitude;
+}
+
 export function RenderPreview({
   poem,
   brightnessMap,
@@ -66,13 +72,15 @@ export function RenderPreview({
     const rowStep = Math.max(1, Math.floor(cellSize * lineHeight));
     const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
     const points: Array<{ glyph: string; x: number; y: number; col: number; row: number; order: number }> = [];
+    const jitterAmplitude = Math.min(0.9, cellSize * 0.12);
     for (let row = 0; row < dimensions.rows; row += 1) {
       for (let col = 0; col < dimensions.cols; col += 1) {
         const glyph = grid[row * dimensions.cols + col];
         if (glyph !== " ") {
+          const jitterX = antiBandingJitter(col, row, jitterAmplitude);
           points.push({
             glyph,
-            x: col * cellSize,
+            x: col * cellSize + jitterX,
             y: row * rowStep,
             col,
             row,
