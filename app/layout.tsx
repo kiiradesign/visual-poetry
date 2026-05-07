@@ -18,6 +18,11 @@ const ibmPlexMono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Visual Poetry",
   description: "Transform plain text poetry into image-guided visual compositions.",
+  icons: {
+    icon: "/branding/vp-favicon.svg",
+    shortcut: "/branding/vp-favicon.svg",
+    apple: "/branding/vp-favicon.svg",
+  },
 };
 
 export default function RootLayout({

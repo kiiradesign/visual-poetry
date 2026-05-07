@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
+import Image from "next/image";
 import { ColorControls } from "@/components/poetry/ColorControls";
 import { ExportPanel } from "@/components/poetry/ExportPanel";
 import { ImageUpload } from "@/components/poetry/ImageUpload";
@@ -77,10 +78,21 @@ const DARK_MODE_TEXT = "#E6EEF2"; // pale blue-white
 const DARK_MODE_BACKGROUND = "#003153"; // Prussian blue
 
 const STORAGE_IMAGE_KEY = "visual-poetry-uploaded-image";
+const STORAGE_POEM_KEY = "visual-poetry-poem";
+const STORAGE_SETTINGS_KEY = "visual-poetry-settings";
 
 type StoredImagePayload = {
   name: string;
   dataUrl: string;
+};
+
+type StoredSettingsPayload = {
+  textColor: string;
+  backgroundColor: string;
+  cellSize: number;
+  lineHeight: number;
+  detailStrength: number;
+  exportScale: number;
 };
 
 function fileToDataUrl(file: File): Promise<string> {
@@ -105,7 +117,6 @@ export default function HomePage() {
   const [backgroundColor, setBackgroundColor] = useState(LIGHT_MODE_BACKGROUND);
   const [cellSize, setCellSize] = useState(10);
   const [lineHeight, setLineHeight] = useState(1.1);
-  const [wordSpacing, setWordSpacing] = useState(2);
   const [detailStrength, setDetailStrength] = useState(0.65);
   const [exportScale, setExportScale] = useState(2);
   const [imageError, setImageError] = useState<string>();
@@ -153,6 +164,73 @@ export default function HomePage() {
     userCustomizedColorsRef.current = true;
     setBackgroundColor(value);
   }
+
+  useEffect(() => {
+    try {
+      const storedPoem = window.localStorage.getItem(STORAGE_POEM_KEY);
+      if (storedPoem !== null) {
+        setPoem(storedPoem);
+      }
+    } catch {
+      // Ignore storage read failures and keep default poem.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(STORAGE_POEM_KEY, poem);
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [poem]);
+
+  useEffect(() => {
+    try {
+      const rawSettings = window.localStorage.getItem(STORAGE_SETTINGS_KEY);
+      if (!rawSettings) {
+        return;
+      }
+      const parsed = JSON.parse(rawSettings) as Partial<StoredSettingsPayload>;
+      if (typeof parsed.textColor === "string") {
+        setTextColor(parsed.textColor);
+        userCustomizedColorsRef.current = true;
+      }
+      if (typeof parsed.backgroundColor === "string") {
+        setBackgroundColor(parsed.backgroundColor);
+        userCustomizedColorsRef.current = true;
+      }
+      if (typeof parsed.cellSize === "number") {
+        setCellSize(parsed.cellSize);
+      }
+      if (typeof parsed.lineHeight === "number") {
+        setLineHeight(parsed.lineHeight);
+      }
+      if (typeof parsed.detailStrength === "number") {
+        setDetailStrength(parsed.detailStrength);
+      }
+      if (typeof parsed.exportScale === "number") {
+        setExportScale(parsed.exportScale);
+      }
+    } catch {
+      // Ignore malformed settings payload.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      const payload: StoredSettingsPayload = {
+        textColor,
+        backgroundColor,
+        cellSize,
+        lineHeight,
+        detailStrength,
+        exportScale,
+      };
+      window.localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(payload));
+    } catch {
+      // Ignore storage write failures.
+    }
+  }, [backgroundColor, cellSize, detailStrength, exportScale, lineHeight, textColor]);
 
   useEffect(() => {
     async function restoreStoredImage() {
@@ -242,7 +320,6 @@ export default function HomePage() {
       {
         cellSize,
         lineHeight,
-        wordSpacing,
         detailStrength,
         textColor,
         backgroundColor,
@@ -252,16 +329,21 @@ export default function HomePage() {
   }
 
   return (
-    <main className="min-h-screen bg-background p-4 sm:p-8">
-      <div className="mx-auto grid w-full max-w-7xl gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
-        <div className="space-y-4">
+    <main className="h-screen overflow-hidden bg-background p-4 sm:p-6">
+      <div className="mx-auto grid h-full w-full max-w-7xl gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
+        <div className="flex min-h-0 flex-col gap-4">
           <header className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0 flex-1">
-                <h1 className="text-2xl tracking-tight">
-                  <span className="font-mono font-medium lowercase">visual</span>
-                  <span className="ml-1 font-serif italic lowercase">poetry</span>
-                </h1>
+                <h1 className="sr-only">Visual Poetry</h1>
+                <Image
+                  src="/branding/vp-logo.svg"
+                  alt="Visual Poetry"
+                  width={180}
+                  height={28}
+                  priority
+                  className="h-7 w-auto select-none brightness-0 dark:invert"
+                />
                 <p className="mt-1 text-sm text-muted-foreground">
                   Turn plain text poetry into image-guided type compositions.
                 </p>
@@ -276,9 +358,15 @@ export default function HomePage() {
             previewUrl={imagePreviewUrl}
             error={imageError}
           />
+          <ExportPanel
+            scale={exportScale}
+            canExport={canGenerate}
+            onScaleChange={setExportScale}
+            onExport={handleExport}
+          />
         </div>
 
-        <div className="space-y-4">
+        <div className="flex min-h-0 flex-col gap-4">
           <RenderPreview
             poem={poem}
             brightnessMap={brightnessMap}
@@ -286,7 +374,6 @@ export default function HomePage() {
             backgroundColor={backgroundColor}
             cellSize={cellSize}
             lineHeight={lineHeight}
-            wordSpacing={wordSpacing}
             detailStrength={detailStrength}
             animationToken={animationToken}
           />
@@ -297,22 +384,12 @@ export default function HomePage() {
               cellSize={cellSize}
               detailStrength={detailStrength}
               lineHeight={lineHeight}
-              wordSpacing={wordSpacing}
               onTextColorChange={handleTextColorChange}
               onBackgroundColorChange={handleBackgroundColorChange}
               onCellSizeChange={setCellSize}
               onDetailStrengthChange={setDetailStrength}
               onLineHeightChange={setLineHeight}
-              onWordSpacingChange={setWordSpacing}
             />
-            <div className="space-y-4">
-              <ExportPanel
-                scale={exportScale}
-                canExport={canGenerate}
-                onScaleChange={setExportScale}
-                onExport={handleExport}
-              />
-            </div>
           </div>
         </div>
       </div>

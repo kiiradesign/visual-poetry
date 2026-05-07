@@ -6,6 +6,8 @@ import {
 } from "@chenglou/pretext";
 import { BrightnessMap, RenderDimensions } from "./types";
 
+const MAX_GRID_CELLS = 140_000;
+
 function normalizedPoem(poem: string): string {
   const compact = poem
     .replace(/\r/g, " ")
@@ -81,11 +83,6 @@ function rowSpanFromBrightness(
   };
 }
 
-function addWordSpacing(text: string, spacing: number): string {
-  const gap = " ".repeat(Math.max(1, Math.round(spacing)));
-  return text.split(" ").join(gap);
-}
-
 function makeLoopedText(text: string, minChars: number): string {
   if (text.length === 0) {
     return text;
@@ -111,8 +108,14 @@ export function getRenderDimensions(
   lineHeight: number
 ): RenderDimensions {
   const rowStep = Math.max(1, Math.floor(cellSize * lineHeight));
-  const cols = Math.max(1, Math.floor(sourceWidth / cellSize));
-  const rows = Math.max(1, Math.floor(sourceHeight / rowStep));
+  let cols = Math.max(1, Math.floor(sourceWidth / cellSize));
+  let rows = Math.max(1, Math.floor(sourceHeight / rowStep));
+  const totalCells = cols * rows;
+  if (totalCells > MAX_GRID_CELLS) {
+    const scale = Math.sqrt(MAX_GRID_CELLS / totalCells);
+    cols = Math.max(1, Math.floor(cols * scale));
+    rows = Math.max(1, Math.floor(rows * scale));
+  }
   return {
     width: cols * cellSize,
     height: rows * rowStep,
@@ -126,8 +129,7 @@ export function layoutTextGrid(
   brightnessMap: BrightnessMap,
   cols: number,
   rows: number,
-  cellSize: number,
-  wordSpacing: number
+  cellSize: number
 ): string[] {
   const coverageBalance = 0.7;
   return layoutTextGridPretext(
@@ -136,7 +138,6 @@ export function layoutTextGrid(
     cols,
     rows,
     cellSize,
-    wordSpacing,
     coverageBalance
   );
 }
@@ -147,7 +148,6 @@ function layoutTextGridPretext(
   cols: number,
   rows: number,
   cellSize: number,
-  wordSpacing: number,
   coverageBalance: number
 ): string[] {
   const output: string[] = new Array(cols * rows).fill(" ");
@@ -155,7 +155,7 @@ function layoutTextGridPretext(
   const background = estimateBackgroundBrightness(brightnessMap);
   const subjectThreshold = 0.145 - coverage * 0.025;
   const baseText = normalizedPoem(poem);
-  const spacedText = addWordSpacing(baseText, wordSpacing);
+  const spacedText = baseText;
   // Build a long loop so "end-of-poem" rarely occurs during a frame. This avoids
   // visible restart seams/glitches when the text wraps.
   const expectedGlyphBudget = Math.max(4000, cols * rows * 6);
@@ -316,7 +316,7 @@ function layoutTextGridPretext(
       continue;
     }
 
-    const preferredGap = Math.max(1, Math.round(wordSpacing));
+    const preferredGap = 1;
     let wordIndex = 0;
     let placedAny = false;
 

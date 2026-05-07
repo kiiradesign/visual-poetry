@@ -40,8 +40,7 @@ export function renderToCanvas(
     brightnessMap,
     dimensions.cols,
     dimensions.rows,
-    settings.cellSize,
-    settings.wordSpacing
+    settings.cellSize
   );
   const rowStep = Math.max(1, Math.floor(settings.cellSize * settings.lineHeight));
   const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);

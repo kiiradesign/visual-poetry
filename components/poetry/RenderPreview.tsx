@@ -10,7 +10,6 @@ type RenderPreviewProps = {
   backgroundColor: string;
   cellSize: number;
   lineHeight: number;
-  wordSpacing: number;
   detailStrength: number;
   animationToken: number;
 };
@@ -39,7 +38,6 @@ export function RenderPreview({
   backgroundColor,
   cellSize,
   lineHeight,
-  wordSpacing,
   detailStrength,
   animationToken,
 }: RenderPreviewProps) {
@@ -65,8 +63,7 @@ export function RenderPreview({
       brightnessMap,
       dimensions.cols,
       dimensions.rows,
-      cellSize,
-      wordSpacing
+      cellSize
     );
 
     const rowStep = Math.max(1, Math.floor(cellSize * lineHeight));
@@ -129,10 +126,17 @@ export function RenderPreview({
 
     withStyle.sort((a, b) => a.y - b.y || a.x - b.x || a.order - b.order);
     return withStyle;
-  }, [brightnessMap, cellSize, detailStrength, dimensions, lineHeight, poem, wordSpacing]);
+  }, [brightnessMap, cellSize, detailStrength, dimensions, lineHeight, poem]);
 
   const drawDurationSeconds = 3.5;
-  const delayStep = glyphs.length > 0 ? drawDurationSeconds / glyphs.length : 0;
+  const previewGlyphs = useMemo(() => {
+    if (glyphs.length <= 24000) {
+      return glyphs;
+    }
+    // Keep preview responsive under extreme densities; export still renders full resolution.
+    return glyphs.filter((_, index) => index % 2 === 0);
+  }, [glyphs]);
+  const delayStep = previewGlyphs.length > 0 ? drawDurationSeconds / previewGlyphs.length : 0;
   const animatedTokenRef = useRef<number | null>(null);
   const shouldAnimate = animatedTokenRef.current !== animationToken;
 
@@ -141,27 +145,27 @@ export function RenderPreview({
   }, [animationToken]);
 
   return (
-    <section className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
+    <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
       <h2 className="mb-3 text-xl font-semibold">Preview</h2>
       {errorMessage ? (
         <div
-          className="flex h-80 items-center justify-center rounded-md border border-dashed border-solid border-border/80 px-6 text-center text-sm shadow-inner"
+          className="flex min-h-0 flex-1 items-center justify-center rounded-md border border-dashed border-solid border-border/80 px-6 text-center text-sm shadow-inner"
           style={{ backgroundColor, color: textColor }}
         >
           {errorMessage}
         </div>
       ) : (
         <div
-          className="overflow-auto rounded-md border border-solid border-border p-2 shadow-inner"
+          className="min-h-0 flex-1 overflow-hidden rounded-md border border-solid border-border p-2 shadow-inner"
           style={{ backgroundColor }}
         >
           {dimensions ? (
             <div
               key={`preview-${animationToken}`}
-              className="font-render relative mx-auto"
+              className="font-render relative mx-auto max-h-full max-w-full"
               style={{ width: dimensions.width, height: dimensions.height }}
             >
-              {glyphs.map((point, index) => (
+              {previewGlyphs.map((point, index) => (
                 <motion.span
                   key={`${point.order}-${index}`}
                   className="absolute whitespace-pre leading-none"
