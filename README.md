@@ -143,6 +143,16 @@ This system instead:
 
 That makes it closer to **typewriter art** than terminal ASCII: constrained, grid-aware, textural mark-making with language-driven material rather than static symbol substitution.
 
+### Parameter Sensitivity (practical tuning)
+
+- `Text size` (`cellSize`): Changes grid density. Smaller values increase glyph count and fine detail; larger values create bolder, more abstract shapes.
+- `Line height`: Controls vertical row step. Lower values tighten rows (denser texture); higher values open vertical breathing room and can emphasize stroke direction.
+- `Word spacing`: Sets inter-word gap during packing. Higher values create clearer phrase separation and more negative space; lower values produce tighter, more continuous texture.
+- `Details`: Scales tonal contrast response in styling. Higher values increase opacity/weight separation (more punch and grain); lower values flatten contrast for a softer, quieter image.
+- `Text color` / `Background color`: Do not alter geometric packing, only perception of tonal depth and edge separation.
+
+In practice, start with shape controls (`Text size`, `Line height`, `Word spacing`) to lock composition, then use `Details` and colors to tune mood and legibility.
+
 ## Theming Notes
 
 - UI uses shadcn semantic tokens (`bg-card`, `border-border`, `text-muted-foreground`, etc.) backed by CSS variables in `app/globals.css`.
