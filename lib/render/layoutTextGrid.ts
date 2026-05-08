@@ -195,7 +195,8 @@ function layoutTextGridPretext(
     runEnd: number,
     cursorCol: number,
     word: string,
-    preferredGap: number
+    preferredGap: number,
+    reservedTailCells: number
   ): { placed: boolean; nextCursor: number } {
     const remaining = runEnd - cursorCol + 1;
     if (remaining <= 0) {
@@ -206,18 +207,28 @@ function layoutTextGridPretext(
       return { placed: false, nextCursor: cursorCol };
     }
 
-    // Per-word tracking varies by row/run to avoid overly uniform glyph cadence,
-    // while staying bounded so words still fit silhouette runs reliably.
-    const maxStepByWordGap = Math.max(1, preferredGap + 1);
-    const maxVisualStep = word.length >= 6 ? 3 : 2;
+    // Keep words readable by ensuring inter-word gap is larger than intra-word
+    // spacing (tracking blank = letterStep - 1, so letterStep must be <= gap).
+    const maxStepByWordGap = Math.max(1, preferredGap);
+    const maxVisualStep = 2;
     const maxTrackingStep = Math.min(maxVisualStep, maxStepByWordGap);
     const seed = trackingVariantSeed(row, runStart, word.length);
     let letterStep = 1;
-    if (maxTrackingStep >= 3 && seed % 11 < 3) {
-      letterStep = 3;
-    } else if (maxTrackingStep >= 2 && seed % 7 < 3) {
+    if (maxTrackingStep >= 2 && seed % 7 < 3) {
       letterStep = 2;
     }
+
+    // Prefer wider tracking when possible, but reserve enough cells for the
+    // next word and required word-gap so run endings stay less ragged.
+    const maxAllowedForCurrent = Math.max(word.length, remaining - Math.max(0, reservedTailCells));
+    while (letterStep > 1) {
+      const needed = 1 + (word.length - 1) * letterStep;
+      if (needed <= maxAllowedForCurrent) {
+        break;
+      }
+      letterStep -= 1;
+    }
+
     while (letterStep > 1) {
       const needed = 1 + (word.length - 1) * letterStep;
       if (needed <= remaining) {
@@ -316,7 +327,7 @@ function layoutTextGridPretext(
       continue;
     }
 
-    const preferredGap = 1;
+    const preferredGap = 2;
     let wordIndex = 0;
     let placedAny = false;
 
@@ -329,12 +340,30 @@ function layoutTextGridPretext(
       }
       while (wordIndex < words.length) {
         const word = words[wordIndex];
-        let placement = placeWordWithTracking(row, run.start, run.end, cursorCol, word, preferredGap);
+        const nextWord = wordIndex + 1 < words.length ? words[wordIndex + 1] : undefined;
+        const reservedTailCells = nextWord ? preferredGap + nextWord.length : 0;
+        let placement = placeWordWithTracking(
+          row,
+          run.start,
+          run.end,
+          cursorCol,
+          word,
+          preferredGap,
+          reservedTailCells
+        );
         if (!placement.placed && cursorCol !== run.start) {
           // If stagger start doesn't fit, retry from original run start so
           // we preserve text density.
           cursorCol = run.start;
-          placement = placeWordWithTracking(row, run.start, run.end, cursorCol, word, preferredGap);
+          placement = placeWordWithTracking(
+            row,
+            run.start,
+            run.end,
+            cursorCol,
+            word,
+            preferredGap,
+            reservedTailCells
+          );
         }
         if (!placement.placed) {
           // Allow soft word continuation (without hyphen) when a run has room for
@@ -359,9 +388,9 @@ function layoutTextGridPretext(
           break;
         }
 
-        const nextWord = words[wordIndex];
+        const nextWordToPlace = words[wordIndex];
         const remainingAfterWord = run.end - cursorCol + 1;
-        const minNeededForNext = nextWord.length;
+        const minNeededForNext = nextWordToPlace.length;
         if (remainingAfterWord <= minNeededForNext) {
           break;
         }
