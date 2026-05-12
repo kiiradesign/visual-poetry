@@ -1,5 +1,5 @@
 import { layoutTextGrid, sampleBrightnessAtCell } from "./layoutTextGrid";
-import { BrightnessMap, RenderDimensions, RenderSettings } from "./types";
+import { BrightnessMap, DETAIL_STRENGTH, RenderDimensions, RenderSettings } from "./types";
 
 function estimateBackgroundBrightness(brightnessMap: BrightnessMap): number {
   const { width, height, values } = brightnessMap;
@@ -77,7 +77,7 @@ export function renderToCanvas(
   }
 
   const signalRange = Math.max(0.0001, maxSignal - minSignal);
-  const sliderStrength = Math.max(0, Math.min(1, settings.detailStrength));
+  const sliderStrength = DETAIL_STRENGTH;
   const jitterAmplitude = Math.min(0.9, settings.cellSize * 0.12);
   const coverageBalance = 0.7;
   const usingPretextLayout = true;
@@ -101,18 +101,7 @@ export function renderToCanvas(
         const normalized = Math.max(0, Math.min(1, (signal - minSignal) / signalRange));
         const curved = Math.pow(normalized, 0.72);
         const contrastBoost = 1 + sliderStrength * (usingPretextLayout ? 3.1 : 4.8);
-        let contrasted = Math.max(0, Math.min(1, (curved - 0.5) * contrastBoost + 0.5));
-
-        // At high detail, push toward monochrome ASCII-style tonal bands.
-        if (sliderStrength > 0.72) {
-          const highDetail = (sliderStrength - 0.72) / 0.28;
-          const levels = Math.max(2, Math.round(8 - highDetail * 5)); // 8->3 levels
-          const quantized = Math.round(contrasted * levels) / levels;
-          const dither = ((row * 17 + col * 31) % 97) / 97;
-          const thresholded = quantized > dither ? 1 : quantized;
-          const thresholdMix = usingPretextLayout ? highDetail * 0.18 : highDetail * 0.35;
-          contrasted = quantized * (1 - thresholdMix) + thresholded * thresholdMix;
-        }
+        const contrasted = Math.max(0, Math.min(1, (curved - 0.5) * contrastBoost + 0.5));
 
         // 0.0 => near-uniform opacity, 1.0 => strong monochrome-like variation.
         // Never let glyphs disappear entirely; thinned + faint is preferred.

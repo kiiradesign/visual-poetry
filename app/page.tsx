@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { ColorControls } from "@/components/poetry/ColorControls";
+import { TextControls, VisualControls } from "@/components/poetry/ColorControls";
 import { ExportPanel } from "@/components/poetry/ExportPanel";
 import { ImageUpload } from "@/components/poetry/ImageUpload";
 import { PoemInput } from "@/components/poetry/PoemInput";
@@ -91,7 +91,6 @@ type StoredSettingsPayload = {
   backgroundColor: string;
   cellSize: number;
   lineHeight: number;
-  detailStrength: number;
   exportScale: number;
 };
 
@@ -117,7 +116,6 @@ export default function HomePage() {
   const [backgroundColor, setBackgroundColor] = useState(LIGHT_MODE_BACKGROUND);
   const [cellSize, setCellSize] = useState(10);
   const [lineHeight, setLineHeight] = useState(1.1);
-  const [detailStrength, setDetailStrength] = useState(0.65);
   const [exportScale, setExportScale] = useState(2);
   const [imageError, setImageError] = useState<string>();
   const [filename, setFilename] = useState<string>();
@@ -205,9 +203,6 @@ export default function HomePage() {
       if (typeof parsed.lineHeight === "number") {
         setLineHeight(parsed.lineHeight);
       }
-      if (typeof parsed.detailStrength === "number") {
-        setDetailStrength(parsed.detailStrength);
-      }
       if (typeof parsed.exportScale === "number") {
         setExportScale(parsed.exportScale);
       }
@@ -223,14 +218,13 @@ export default function HomePage() {
         backgroundColor,
         cellSize,
         lineHeight,
-        detailStrength,
         exportScale,
       };
       window.localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(payload));
     } catch {
       // Ignore storage write failures.
     }
-  }, [backgroundColor, cellSize, detailStrength, exportScale, lineHeight, textColor]);
+  }, [backgroundColor, cellSize, exportScale, lineHeight, textColor]);
 
   useEffect(() => {
     async function restoreStoredImage() {
@@ -320,7 +314,6 @@ export default function HomePage() {
       {
         cellSize,
         lineHeight,
-        detailStrength,
         textColor,
         backgroundColor,
       },
@@ -330,7 +323,7 @@ export default function HomePage() {
 
   return (
     <main className="h-screen overflow-hidden bg-background p-4 sm:p-6">
-      <div className="mx-auto grid h-full w-full max-w-7xl gap-4 lg:grid-cols-[minmax(300px,380px)_1fr]">
+      <div className="mx-auto grid h-full w-full max-w-screen-2xl gap-4 lg:grid-cols-[minmax(280px,340px)_1fr_minmax(240px,280px)]">
         <div className="flex min-h-0 flex-col gap-4">
           <header className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
             <div className="flex items-start justify-between gap-3">
@@ -358,15 +351,9 @@ export default function HomePage() {
             previewUrl={imagePreviewUrl}
             error={imageError}
           />
-          <ExportPanel
-            scale={exportScale}
-            canExport={canGenerate}
-            onScaleChange={setExportScale}
-            onExport={handleExport}
-          />
         </div>
 
-        <div className="flex min-h-0 flex-col gap-4">
+        <div className="flex min-h-0 flex-col">
           <RenderPreview
             poem={poem}
             brightnessMap={brightnessMap}
@@ -374,25 +361,55 @@ export default function HomePage() {
             backgroundColor={backgroundColor}
             cellSize={cellSize}
             lineHeight={lineHeight}
-            detailStrength={detailStrength}
             animationToken={animationToken}
           />
-          <div className="grid gap-4 lg:grid-cols-2">
-            <ColorControls
-              textColor={textColor}
-              backgroundColor={backgroundColor}
-              cellSize={cellSize}
-              detailStrength={detailStrength}
-              lineHeight={lineHeight}
-              onTextColorChange={handleTextColorChange}
-              onBackgroundColorChange={handleBackgroundColorChange}
-              onCellSizeChange={setCellSize}
-              onDetailStrengthChange={setDetailStrength}
-              onLineHeightChange={setLineHeight}
-            />
-          </div>
+        </div>
+
+        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+          <TextControls
+            cellSize={cellSize}
+            lineHeight={lineHeight}
+            onCellSizeChange={setCellSize}
+            onLineHeightChange={setLineHeight}
+          />
+          <VisualControls
+            textColor={textColor}
+            backgroundColor={backgroundColor}
+            onTextColorChange={handleTextColorChange}
+            onBackgroundColorChange={handleBackgroundColorChange}
+          />
+          <ExportPanel
+            scale={exportScale}
+            canExport={canGenerate}
+            onScaleChange={setExportScale}
+            onExport={handleExport}
+          />
+          <AboutPanel />
         </div>
       </div>
     </main>
+  );
+}
+
+function AboutPanel() {
+  return (
+    <section className="flex flex-col gap-2 rounded-lg border border-solid border-border bg-card px-4 py-3 text-card-foreground shadow-sm">
+      <h2 className="text-base font-semibold">About</h2>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Visual Poetry turns plain text into image-guided type compositions — words become pixels, poems become texture.
+      </p>
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        Made by{" "}
+        <a
+          href="https://kiiraetc.substack.com"
+          target="_blank"
+          rel="noreferrer"
+          className="text-foreground underline-offset-4 transition-colors duration-150 [transition-timing-function:var(--ease-out)] hover:underline"
+        >
+          postcards from chaos
+        </a>
+        .
+      </p>
+    </section>
   );
 }

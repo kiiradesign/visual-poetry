@@ -38,6 +38,12 @@ body {
     --font-sans: var(--font-sans);
   }
   :root {
+    /* Custom easing curves — built-in CSS easings are too weak.
+       Per Emil Kowalski / animations.dev: use stronger custom variants. */
+    --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+    --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+    --ease-quick: cubic-bezier(0.32, 0.72, 0, 1);
+
     --background: oklch(1 0 0);
     --foreground: oklch(0.141 0.005 285.823);
     --card: oklch(1 0 0);
@@ -194,6 +200,19 @@ body {
     border: none;
     background: var(--slider-thumb);
     box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+    transition:
+      transform 160ms var(--ease-out),
+      box-shadow 160ms var(--ease-out);
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    input[type="range"].vp-range:hover::-webkit-slider-thumb {
+      transform: scaleY(1.15);
+    }
+  }
+
+  input[type="range"].vp-range:active::-webkit-slider-thumb {
+    transform: scale(0.94);
   }
 
   input[type="range"].vp-range:focus-visible::-webkit-slider-thumb {
@@ -225,6 +244,13 @@ body {
     border-radius: 9999px;
     background: var(--slider-thumb);
     box-shadow: 0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+    transition:
+      transform 160ms var(--ease-out),
+      box-shadow 160ms var(--ease-out);
+  }
+
+  input[type="range"].vp-range:active::-moz-range-thumb {
+    transform: scale(0.94);
   }
 
   input[type="range"].vp-range:focus-visible::-moz-range-thumb {
@@ -232,5 +258,56 @@ body {
       0 0 0 2px var(--background),
       0 0 0 4px var(--ring),
       0 1px 3px color-mix(in oklab, var(--foreground) 18%, transparent);
+  }
+}
+
+/* Reduced motion: keep opacity/color fades, drop transform-based motion */
+@media (prefers-reduced-motion: reduce) {
+  input[type="range"].vp-range::-webkit-slider-thumb,
+  input[type="range"].vp-range::-moz-range-thumb {
+    transition: box-shadow 160ms ease;
+  }
+}
+
+/* react-colorful overrides — scope under .vp-color-picker so library defaults
+   stay untouched elsewhere. Goal: cohesion with the rest of the app. */
+.vp-color-picker .react-colorful {
+  width: 100%;
+  height: 180px;
+  gap: 12px;
+}
+
+.vp-color-picker .react-colorful__saturation {
+  border-radius: 0.5rem;
+  border-bottom: none;
+}
+
+.vp-color-picker .react-colorful__last-control,
+.vp-color-picker .react-colorful__hue {
+  height: 10px;
+  border-radius: 9999px;
+}
+
+.vp-color-picker .react-colorful__pointer {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #fff;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 0.35),
+    0 0 0 1px rgb(0 0 0 / 0.15);
+  transition: transform 160ms var(--ease-out);
+}
+
+.vp-color-picker .react-colorful__interactive:active .react-colorful__pointer,
+.vp-color-picker .react-colorful__interactive:focus-visible .react-colorful__pointer {
+  transform: translate(-50%, -50%) scale(1.15);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vp-color-picker .react-colorful__pointer {
+    transition: none;
+  }
+  .vp-color-picker .react-colorful__interactive:active .react-colorful__pointer {
+    transform: translate(-50%, -50%);
   }
 }

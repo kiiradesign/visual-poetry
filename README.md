@@ -14,7 +14,7 @@ This project aims to reunite the draft with its visual soul. By using a poem's w
 - Visual Reference: Upload a reference image (e.g., a photo of a specific flower or insect) to guide the layout and color palette.
 - Text-as-Pixel Rendering: Uses `@chenglou/pretext` only (legacy mode removed), with silhouette-constrained packing and seamless text looping.
 - Anti-banding Text Placement: Reduces vertical line artifacts via deterministic run staggering and sub-cell glyph jitter while preserving silhouette coverage.
-- Detail Controls: Sliders for details, text size, line height, and word spacing.
+- Detail Controls: Sliders for text size, line height, and word spacing. Tonal contrast strength is held at a fixed optimal value.
 - Dark/Light Theming: shadcn token-based theme with mode toggle and consistent component styling.
 - Theme-aware Defaults: Light mode defaults to warm paper/ink (`#F4F1EA` / `#2D2926`) and dark mode to Prussian blue/pale blue-white (`#003153` / `#E6EEF2`).
 - Animated Preview: Hammer-strike style glyph reveal on image load/refresh; slider changes do not retrigger animation.
@@ -55,7 +55,7 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 
 - Paste a poem and upload a JPEG/PNG reference image (image persists across refresh via local storage).
 - Pick text/background colors using direct swatch color controls (no hex text shown inline).
-- Tune `Details`, `Text size`, `Line height`, and `Word spacing`.
+- Tune `Text size`, `Line height`, and `Word spacing`.
 - Preview updates live with pretext-only layout.
 - Export generated output to PNG at 1x/2x/4x.
 
@@ -148,10 +148,11 @@ That makes it closer to **typewriter art** than terminal ASCII: constrained, gri
 - `Text size` (`cellSize`): Changes grid density. Smaller values increase glyph count and fine detail; larger values create bolder, more abstract shapes.
 - `Line height`: Controls vertical row step. Lower values tighten rows (denser texture); higher values open vertical breathing room and can emphasize stroke direction.
 - `Word spacing`: Sets inter-word gap during packing. Higher values create clearer phrase separation and more negative space; lower values produce tighter, more continuous texture.
-- `Details`: Scales tonal contrast response in styling. Higher values increase opacity/weight separation (more punch and grain); lower values flatten contrast for a softer, quieter image.
 - `Text color` / `Background color`: Do not alter geometric packing, only perception of tonal depth and edge separation.
 
-In practice, start with shape controls (`Text size`, `Line height`, `Word spacing`) to lock composition, then use `Details` and colors to tune mood and legibility.
+Tonal contrast strength (formerly the `Details` slider) is fixed at `0.65` in `lib/render/types.ts`. This value is below the posterization threshold so the preview faithfully matches the export.
+
+In practice, start with shape controls (`Text size`, `Line height`, `Word spacing`) to lock composition, then use colors to tune mood and legibility.
 
 ## Theming Notes
 

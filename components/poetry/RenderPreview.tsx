@@ -1,7 +1,10 @@
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo, useRef } from "react";
 import { getRenderDimensions, layoutTextGrid, sampleBrightnessAtCell } from "@/lib/render/layoutTextGrid";
-import { BrightnessMap } from "@/lib/render/types";
+import { BrightnessMap, DETAIL_STRENGTH } from "@/lib/render/types";
+
+// Strong ease-out curve — built-in CSS easings are too weak for entrance animations.
+const STRIKE_EASE = [0.23, 1, 0.32, 1] as const;
 
 type RenderPreviewProps = {
   poem: string;
@@ -10,7 +13,6 @@ type RenderPreviewProps = {
   backgroundColor: string;
   cellSize: number;
   lineHeight: number;
-  detailStrength: number;
   animationToken: number;
 };
 
@@ -38,7 +40,6 @@ export function RenderPreview({
   backgroundColor,
   cellSize,
   lineHeight,
-  detailStrength,
   animationToken,
 }: RenderPreviewProps) {
   const errorMessage = !poem.trim()
@@ -87,7 +88,7 @@ export function RenderPreview({
       }
     }
 
-    const sliderStrength = Math.max(0, Math.min(1, detailStrength));
+    const sliderStrength = DETAIL_STRENGTH;
     const tonalSignals = new Float32Array(points.length);
     let minSignal = Number.POSITIVE_INFINITY;
     let maxSignal = Number.NEGATIVE_INFINITY;
@@ -126,7 +127,7 @@ export function RenderPreview({
 
     withStyle.sort((a, b) => a.y - b.y || a.x - b.x || a.order - b.order);
     return withStyle;
-  }, [brightnessMap, cellSize, detailStrength, dimensions, lineHeight, poem]);
+  }, [brightnessMap, cellSize, dimensions, lineHeight, poem]);
 
   const drawDurationSeconds = 3.5;
   const previewGlyphs = useMemo(() => {
@@ -138,7 +139,8 @@ export function RenderPreview({
   }, [glyphs]);
   const delayStep = previewGlyphs.length > 0 ? drawDurationSeconds / previewGlyphs.length : 0;
   const animatedTokenRef = useRef<number | null>(null);
-  const shouldAnimate = animatedTokenRef.current !== animationToken;
+  const prefersReducedMotion = useReducedMotion();
+  const shouldAnimate = !prefersReducedMotion && animatedTokenRef.current !== animationToken;
 
   useEffect(() => {
     animatedTokenRef.current = animationToken;
@@ -179,9 +181,9 @@ export function RenderPreview({
                   initial={shouldAnimate ? { opacity: 0, scale: 1.5 } : false}
                   animate={{ opacity: point.alpha, scale: 1 }}
                   transition={{
-                    duration: shouldAnimate ? 0.05 : 0,
+                    duration: shouldAnimate ? 0.12 : 0,
                     delay: shouldAnimate ? index * delayStep : 0,
-                    ease: "linear",
+                    ease: STRIKE_EASE,
                   }}
                 >
                   {point.glyph}
