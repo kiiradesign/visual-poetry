@@ -18,22 +18,36 @@ function antiBandingJitter(col: number, row: number, amplitude: number): number 
   return (normalized * 2 - 1) * amplitude;
 }
 
+export type RenderOptions = {
+  /** Logical viewport size (preview panel size in CSS pixels). */
+  viewportWidth: number;
+  viewportHeight: number;
+  /** User-controlled subject zoom multiplier on top of the fit-to-viewport scale. */
+  zoom: number;
+  /** Output pixel multiplier for high-DPI export (1x / 2x / 4x). */
+  outputScale: number;
+};
+
 export function renderToCanvas(
   canvas: HTMLCanvasElement,
   poem: string,
   brightnessMap: BrightnessMap,
   dimensions: RenderDimensions,
-  settings: RenderSettings
+  settings: RenderSettings,
+  options: RenderOptions
 ): void {
   const context = canvas.getContext("2d");
   if (!context) {
     throw new Error("Could not initialize 2D canvas context.");
   }
 
-  canvas.width = dimensions.width;
-  canvas.height = dimensions.height;
+  const canvasWidth = Math.max(1, Math.round(options.viewportWidth * options.outputScale));
+  const canvasHeight = Math.max(1, Math.round(options.viewportHeight * options.outputScale));
+
+  canvas.width = canvasWidth;
+  canvas.height = canvasHeight;
   context.fillStyle = settings.backgroundColor;
-  context.fillRect(0, 0, dimensions.width, dimensions.height);
+  context.fillRect(0, 0, canvasWidth, canvasHeight);
 
   const glyphs = layoutTextGrid(
     poem,
@@ -44,8 +58,22 @@ export function renderToCanvas(
   );
   const rowStep = Math.max(1, Math.floor(settings.cellSize * settings.lineHeight));
   const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
+
+  // Compute the fit-scale that maps natural render dimensions into the viewport,
+  // then multiply by zoom and output scale. Subject is centered in the canvas.
+  const fitScale = Math.min(
+    options.viewportWidth / dimensions.width,
+    options.viewportHeight / dimensions.height
+  );
+  const finalScale = fitScale * options.zoom * options.outputScale;
+  const renderedWidth = dimensions.width * finalScale;
+  const renderedHeight = dimensions.height * finalScale;
+  const offsetX = (canvasWidth - renderedWidth) / 2;
+  const offsetY = (canvasHeight - renderedHeight) / 2;
+  const scaledFontSize = Math.max(1, settings.cellSize * finalScale);
+
   context.fillStyle = settings.textColor;
-  context.font = `400 ${settings.cellSize}px "IBM Plex Mono", monospace`;
+  context.font = `400 ${scaledFontSize}px "IBM Plex Mono", monospace`;
   context.textBaseline = "top";
   context.textAlign = "left";
 
@@ -120,11 +148,13 @@ export function renderToCanvas(
         const targetWeight = quantizedWeight(normalized);
         if (targetWeight !== currentWeight) {
           currentWeight = targetWeight;
-          context.font = `${currentWeight} ${settings.cellSize}px "IBM Plex Mono", monospace`;
+          context.font = `${currentWeight} ${scaledFontSize}px "IBM Plex Mono", monospace`;
         }
         context.globalAlpha = Math.max(minAlpha, Math.min(1, alpha));
         const jitterX = antiBandingJitter(col, row, jitterAmplitude);
-        context.fillText(glyph, col * settings.cellSize + jitterX, row * rowStep);
+        const drawX = offsetX + (col * settings.cellSize + jitterX) * finalScale;
+        const drawY = offsetY + row * rowStep * finalScale;
+        context.fillText(glyph, drawX, drawY);
       }
     }
   }

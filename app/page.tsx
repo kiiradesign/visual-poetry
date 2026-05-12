@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTheme } from "next-themes";
 import Image from "next/image";
-import { TextControls, VisualControls } from "@/components/poetry/ColorControls";
+import { DetailControls, VisualControls } from "@/components/poetry/ColorControls";
 import { ExportPanel } from "@/components/poetry/ExportPanel";
 import { ImageUpload } from "@/components/poetry/ImageUpload";
 import { PoemInput } from "@/components/poetry/PoemInput";
@@ -91,8 +91,11 @@ type StoredSettingsPayload = {
   backgroundColor: string;
   cellSize: number;
   lineHeight: number;
+  zoom: number;
   exportScale: number;
 };
+
+type PreviewViewport = { width: number; height: number };
 
 function fileToDataUrl(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -116,7 +119,9 @@ export default function HomePage() {
   const [backgroundColor, setBackgroundColor] = useState(LIGHT_MODE_BACKGROUND);
   const [cellSize, setCellSize] = useState(10);
   const [lineHeight, setLineHeight] = useState(1.1);
+  const [zoom, setZoom] = useState(1);
   const [exportScale, setExportScale] = useState(2);
+  const [previewViewport, setPreviewViewport] = useState<PreviewViewport>({ width: 0, height: 0 });
   const [imageError, setImageError] = useState<string>();
   const [filename, setFilename] = useState<string>();
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string>();
@@ -203,6 +208,9 @@ export default function HomePage() {
       if (typeof parsed.lineHeight === "number") {
         setLineHeight(parsed.lineHeight);
       }
+      if (typeof parsed.zoom === "number") {
+        setZoom(parsed.zoom);
+      }
       if (typeof parsed.exportScale === "number") {
         setExportScale(parsed.exportScale);
       }
@@ -218,13 +226,14 @@ export default function HomePage() {
         backgroundColor,
         cellSize,
         lineHeight,
+        zoom,
         exportScale,
       };
       window.localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(payload));
     } catch {
       // Ignore storage write failures.
     }
-  }, [backgroundColor, cellSize, exportScale, lineHeight, textColor]);
+  }, [backgroundColor, cellSize, exportScale, lineHeight, textColor, zoom]);
 
   useEffect(() => {
     async function restoreStoredImage() {
@@ -303,7 +312,7 @@ export default function HomePage() {
   }
 
   function handleExport() {
-    if (!brightnessMap || !dimensions || !poem.trim()) {
+    if (!brightnessMap || !dimensions || !poem.trim() || !previewViewport.width || !previewViewport.height) {
       return;
     }
 
@@ -316,6 +325,11 @@ export default function HomePage() {
         lineHeight,
         textColor,
         backgroundColor,
+      },
+      {
+        width: previewViewport.width,
+        height: previewViewport.height,
+        zoom,
       },
       exportScale
     );
@@ -361,16 +375,20 @@ export default function HomePage() {
             backgroundColor={backgroundColor}
             cellSize={cellSize}
             lineHeight={lineHeight}
+            zoom={zoom}
             animationToken={animationToken}
+            onViewportChange={setPreviewViewport}
           />
         </div>
 
         <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
-          <TextControls
+          <DetailControls
             cellSize={cellSize}
             lineHeight={lineHeight}
+            zoom={zoom}
             onCellSizeChange={setCellSize}
             onLineHeightChange={setLineHeight}
+            onZoomChange={setZoom}
           />
           <VisualControls
             textColor={textColor}

@@ -3,28 +3,41 @@ import { ColorPicker } from "@/components/ui/color-picker";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 
-type TextControlsProps = {
+type DetailControlsProps = {
   cellSize: number;
   lineHeight: number;
+  zoom: number;
   onCellSizeChange: (value: number) => void;
   onLineHeightChange: (value: number) => void;
+  onZoomChange: (value: number) => void;
   className?: string;
 };
 
-export function TextControls({
+const ZOOM_MIN = 0.3;
+const ZOOM_MAX = 1.5;
+const DEFAULT_ZOOM_PERCENT = 100;
+
+export function DetailControls({
   cellSize,
   lineHeight,
+  zoom,
   onCellSizeChange,
   onLineHeightChange,
+  onZoomChange,
   className,
-}: TextControlsProps) {
+}: DetailControlsProps) {
   const maxCellSizePx = 50;
   const defaultTextSizePercent = 20;
   const defaultLineHeightPercent = 110;
   const cellSizePercent = Math.max(1, Math.min(100, Math.round((cellSize / maxCellSizePx) * 100)));
   const lineHeightPercent = Math.max(80, Math.min(200, Math.round(lineHeight * 100)));
+  const zoomPercent = Math.max(
+    Math.round(ZOOM_MIN * 100),
+    Math.min(Math.round(ZOOM_MAX * 100), Math.round(zoom * 100))
+  );
   const [textSizeInput, setTextSizeInput] = useState(String(cellSizePercent));
   const [lineHeightInput, setLineHeightInput] = useState(String(lineHeightPercent));
+  const [zoomInput, setZoomInput] = useState(String(zoomPercent));
 
   useEffect(() => {
     setTextSizeInput(String(cellSizePercent));
@@ -33,6 +46,10 @@ export function TextControls({
   useEffect(() => {
     setLineHeightInput(String(lineHeightPercent));
   }, [lineHeightPercent]);
+
+  useEffect(() => {
+    setZoomInput(String(zoomPercent));
+  }, [zoomPercent]);
 
   function commitTextSizeInput(rawValue: string) {
     const parsed = Number(rawValue);
@@ -50,6 +67,18 @@ export function TextControls({
     setLineHeightInput(String(normalized));
   }
 
+  function commitZoomInput(rawValue: string) {
+    const parsed = Number(rawValue);
+    const minPercent = Math.round(ZOOM_MIN * 100);
+    const maxPercent = Math.round(ZOOM_MAX * 100);
+    const normalized =
+      Number.isFinite(parsed) && parsed >= minPercent && parsed <= maxPercent
+        ? Math.round(parsed)
+        : DEFAULT_ZOOM_PERCENT;
+    onZoomChange(normalized / 100);
+    setZoomInput(String(normalized));
+  }
+
   return (
     <section
       className={cn(
@@ -57,7 +86,7 @@ export function TextControls({
         className
       )}
     >
-      <h2 className="mb-4 text-xl font-semibold">Text</h2>
+      <h2 className="mb-4 text-xl font-semibold">Details</h2>
       <label className="mt-1 block text-sm">
         <span className="flex items-center justify-between gap-2">
           <span>
@@ -125,6 +154,39 @@ export function TextControls({
           onChange={onLineHeightChange}
           className="mt-2 w-full"
           aria-label="Line height"
+        />
+      </label>
+      <label className="mt-5 block text-sm">
+        <span className="flex items-center justify-between gap-2">
+          <span>
+            Zoom: <span className="font-semibold">{zoomPercent}%</span>
+          </span>
+          <span className="flex items-center gap-1">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={zoomInput}
+              onChange={(event) => setZoomInput(event.target.value)}
+              onBlur={() => commitZoomInput(zoomInput)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  commitZoomInput(zoomInput);
+                }
+              }}
+              className="vp-field h-8 w-16 rounded-md px-2 text-right text-sm"
+              aria-label="Zoom percentage"
+            />
+            <span className="text-xs text-muted-foreground">%</span>
+          </span>
+        </span>
+        <ThemeRange
+          min={ZOOM_MIN}
+          max={ZOOM_MAX}
+          step={0.05}
+          value={zoom}
+          onChange={onZoomChange}
+          className="mt-2 w-full"
+          aria-label="Zoom"
         />
       </label>
     </section>

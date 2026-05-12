@@ -1,10 +1,12 @@
 import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { getRenderDimensions, layoutTextGrid, sampleBrightnessAtCell } from "@/lib/render/layoutTextGrid";
 import { BrightnessMap, DETAIL_STRENGTH } from "@/lib/render/types";
 
 // Strong ease-out curve — built-in CSS easings are too weak for entrance animations.
 const STRIKE_EASE = [0.23, 1, 0.32, 1] as const;
+
+type ViewportSize = { width: number; height: number };
 
 type RenderPreviewProps = {
   poem: string;
@@ -13,7 +15,9 @@ type RenderPreviewProps = {
   backgroundColor: string;
   cellSize: number;
   lineHeight: number;
+  zoom: number;
   animationToken: number;
+  onViewportChange?: (size: ViewportSize) => void;
 };
 
 function estimateBackgroundBrightness(brightnessMap: BrightnessMap): number {
@@ -40,13 +44,44 @@ export function RenderPreview({
   backgroundColor,
   cellSize,
   lineHeight,
+  zoom,
   animationToken,
+  onViewportChange,
 }: RenderPreviewProps) {
   const errorMessage = !poem.trim()
     ? "Add poem text to generate a preview."
     : !brightnessMap
       ? "Upload a reference image to generate preview."
       : null;
+
+  const [viewportNode, setViewportNode] = useState<HTMLDivElement | null>(null);
+  const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
+  const onViewportChangeRef = useRef(onViewportChange);
+
+  useEffect(() => {
+    onViewportChangeRef.current = onViewportChange;
+  }, [onViewportChange]);
+
+  useLayoutEffect(() => {
+    if (!viewportNode) {
+      return;
+    }
+    const initialRect = viewportNode.getBoundingClientRect();
+    const initialSize = { width: initialRect.width, height: initialRect.height };
+    setViewportSize(initialSize);
+    onViewportChangeRef.current?.(initialSize);
+
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const { width, height } = entry.contentRect;
+        const next = { width, height };
+        setViewportSize(next);
+        onViewportChangeRef.current?.(next);
+      }
+    });
+    observer.observe(viewportNode);
+    return () => observer.disconnect();
+  }, [viewportNode]);
 
   const dimensions = useMemo(() => {
     if (!brightnessMap) {
@@ -129,12 +164,22 @@ export function RenderPreview({
     return withStyle;
   }, [brightnessMap, cellSize, dimensions, lineHeight, poem]);
 
+  const finalScale = useMemo(() => {
+    if (!dimensions || !viewportSize.width || !viewportSize.height) {
+      return 0;
+    }
+    const fit = Math.min(
+      viewportSize.width / dimensions.width,
+      viewportSize.height / dimensions.height
+    );
+    return fit * zoom;
+  }, [dimensions, viewportSize, zoom]);
+
   const drawDurationSeconds = 3.5;
   const previewGlyphs = useMemo(() => {
     if (glyphs.length <= 24000) {
       return glyphs;
     }
-    // Keep preview responsive under extreme densities; export still renders full resolution.
     return glyphs.filter((_, index) => index % 2 === 0);
   }, [glyphs]);
   const delayStep = previewGlyphs.length > 0 ? drawDurationSeconds / previewGlyphs.length : 0;
@@ -158,14 +203,20 @@ export function RenderPreview({
         </div>
       ) : (
         <div
-          className="min-h-0 flex-1 overflow-hidden rounded-md border border-solid border-border p-2 shadow-inner"
+          ref={setViewportNode}
+          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md border border-solid border-border p-2 shadow-inner"
           style={{ backgroundColor }}
         >
-          {dimensions ? (
+          {dimensions && finalScale > 0 ? (
             <div
               key={`preview-${animationToken}`}
-              className="font-render relative mx-auto max-h-full max-w-full"
-              style={{ width: dimensions.width, height: dimensions.height }}
+              className="font-render relative"
+              style={{
+                width: dimensions.width,
+                height: dimensions.height,
+                transform: `scale(${finalScale})`,
+                transformOrigin: "center center",
+              }}
             >
               {previewGlyphs.map((point, index) => (
                 <motion.span

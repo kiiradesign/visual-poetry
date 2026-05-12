@@ -1,27 +1,28 @@
 import { renderToCanvas } from "./renderToCanvas";
 import { BrightnessMap, RenderDimensions, RenderSettings } from "./types";
 
+export type ExportViewport = {
+  width: number;
+  height: number;
+  zoom: number;
+};
+
 export function exportPng(
   poem: string,
   brightnessMap: BrightnessMap,
   dimensions: RenderDimensions,
   settings: RenderSettings,
-  scaleMultiplier: number
+  viewport: ExportViewport,
+  outputScale: number
 ): void {
   const canvas = document.createElement("canvas");
-  const scaledDimensions = {
-    ...dimensions,
-    width: dimensions.width * scaleMultiplier,
-    height: dimensions.height * scaleMultiplier,
-    cols: dimensions.cols,
-    rows: dimensions.rows,
-  };
-  const scaledSettings = {
-    ...settings,
-    cellSize: settings.cellSize * scaleMultiplier,
-  };
 
-  renderToCanvas(canvas, poem, brightnessMap, scaledDimensions, scaledSettings);
+  renderToCanvas(canvas, poem, brightnessMap, dimensions, settings, {
+    viewportWidth: viewport.width,
+    viewportHeight: viewport.height,
+    zoom: viewport.zoom,
+    outputScale,
+  });
 
   const link = document.createElement("a");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
