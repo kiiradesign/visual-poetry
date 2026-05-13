@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { DialTheme } from "dialkit";
 import { useTheme } from "next-themes";
 import Image from "next/image";
@@ -20,6 +20,7 @@ const DEFAULT_POEM = "visual poetry";
 
 const DEFAULT_RENDER_TEXT = "#2D2926"; // ink black
 const DEFAULT_RENDER_BACKGROUND = "#F4F1EA"; // warm paper
+const DEFAULT_REFERENCE_IMAGE_NAME = "vp-logo.png";
 
 const STORAGE_IMAGE_KEY = "visual-poetry-uploaded-image";
 const STORAGE_POEM_KEY = "visual-poetry-poem";
@@ -113,6 +114,7 @@ export default function HomePage() {
   const [isRenderAnimating, setIsRenderAnimating] = useState(true);
   const userCustomizedColorsRef = useRef(false);
   const uploadRequestIdRef = useRef(0);
+  const imagePreviewUrlRef = useRef<string | undefined>(undefined);
 
   const isThemeResolved = themeMounted && (resolvedTheme === "dark" || resolvedTheme === "light");
   const isAppReady = isThemeResolved && storageHydrated;
@@ -131,19 +133,14 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    return () => {
-      revokeObjectUrlIfNeeded(imagePreviewUrl);
-    };
+    imagePreviewUrlRef.current = imagePreviewUrl;
   }, [imagePreviewUrl]);
 
-  useLayoutEffect(() => {
-    if (userCustomizedColorsRef.current) {
-      return;
-    }
-    const defaults = getThemeDefaultColors();
-    setTextColor(defaults.textColor);
-    setBackgroundColor(defaults.backgroundColor);
-  }, [resolvedTheme]);
+  useEffect(() => {
+    return () => {
+      revokeObjectUrlIfNeeded(imagePreviewUrlRef.current);
+    };
+  }, []);
 
   function handleTextColorChange(value: string) {
     userCustomizedColorsRef.current = true;
@@ -154,6 +151,127 @@ export default function HomePage() {
     userCustomizedColorsRef.current = true;
     setBackgroundColor(value);
   }
+
+  const handleImageSelection = useCallback(
+    async function handleImageSelectionImpl(
+      file: File | null,
+      persist: boolean = true,
+      fallbackToDefault: boolean = true
+    ): Promise<boolean> {
+      const requestId = uploadRequestIdRef.current + 1;
+      uploadRequestIdRef.current = requestId;
+
+      if (!file) {
+        setIsProcessingImage(false);
+        revokeObjectUrlIfNeeded(imagePreviewUrlRef.current);
+        setBrightnessMap(null);
+        setFilename(undefined);
+        setImagePreviewUrl(undefined);
+        setImageError(undefined);
+        window.sessionStorage.removeItem(STORAGE_IMAGE_KEY);
+
+        if (fallbackToDefault) {
+          try {
+            const defaultFile = await assetToFile(
+              defaultReferenceImage.src,
+              DEFAULT_REFERENCE_IMAGE_NAME
+            );
+            return await handleImageSelectionImpl(defaultFile, false, false);
+          } catch {
+            setImageError("Could not load the default image.");
+            return false;
+          }
+        }
+
+        return false;
+      }
+
+      if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
+        setIsProcessingImage(false);
+        setIsRenderAnimating(false);
+        setImageError("Unsupported file type. Please upload a JPEG or PNG image.");
+        return false;
+      }
+
+      setProcessingToken(requestId);
+      setIsProcessingImage(true);
+      setIsRenderAnimating(true);
+      setBrightnessMap(null);
+      setFilename(file.name);
+      setImageError(undefined);
+
+      try {
+        const viewportMaxWidth = Math.max(600, Math.floor(window.innerWidth * 0.55));
+        const viewportMaxHeight = Math.max(600, Math.floor(window.innerHeight * 0.8));
+        const nextBrightnessMap = await preprocessImage(file, {
+          maxWidth: viewportMaxWidth,
+          maxHeight: viewportMaxHeight,
+        });
+
+        if (requestId !== uploadRequestIdRef.current) {
+          return false;
+        }
+
+        const nextPreviewUrl = URL.createObjectURL(file);
+        revokeObjectUrlIfNeeded(imagePreviewUrlRef.current);
+        setBrightnessMap(nextBrightnessMap);
+        setImagePreviewUrl(nextPreviewUrl);
+        setImageError(undefined);
+        setAnimationToken(Date.now());
+
+        if (persist) {
+          const dataUrl = await fileToDataUrl(file);
+          if (requestId !== uploadRequestIdRef.current) {
+            return false;
+          }
+          const payload: StoredImagePayload = { name: file.name, dataUrl };
+          window.sessionStorage.setItem(STORAGE_IMAGE_KEY, JSON.stringify(payload));
+        }
+
+        return true;
+      } catch {
+        if (requestId !== uploadRequestIdRef.current) {
+          return false;
+        }
+
+        revokeObjectUrlIfNeeded(imagePreviewUrlRef.current);
+        setBrightnessMap(null);
+        setFilename(undefined);
+        setImagePreviewUrl(undefined);
+        setImageError("Could not process the image. Try another file.");
+        window.sessionStorage.removeItem(STORAGE_IMAGE_KEY);
+
+        if (fallbackToDefault) {
+          try {
+            const defaultFile = await assetToFile(
+              defaultReferenceImage.src,
+              DEFAULT_REFERENCE_IMAGE_NAME
+            );
+            return await handleImageSelectionImpl(defaultFile, false, false);
+          } catch {
+            setImageError("Could not load the default image.");
+            return false;
+          }
+        }
+
+        return false;
+      } finally {
+        if (requestId === uploadRequestIdRef.current) {
+          setIsProcessingImage(false);
+        }
+      }
+    },
+    []
+  );
+
+  useLayoutEffect(() => {
+    if (userCustomizedColorsRef.current) {
+      return;
+    }
+    const defaults = getThemeDefaultColors();
+    setTextColor(defaults.textColor);
+    setBackgroundColor(defaults.backgroundColor);
+  }, [resolvedTheme]);
 
   useEffect(() => {
     if (!storageHydrated) {
@@ -187,16 +305,6 @@ export default function HomePage() {
       // Ignore storage write failures.
     }
   }, [backgroundColor, cellSize, exportFormat, exportScale, lineHeight, storageHydrated, textColor, zoom]);
-
-  async function loadBundledDefaultImage(): Promise<boolean> {
-    try {
-      const defaultFile = await assetToFile(defaultReferenceImage.src, "vp-logo.png");
-      return await handleImageSelection(defaultFile, false, false);
-    } catch {
-      setImageError("Could not load the default image.");
-      return false;
-    }
-  }
 
   useEffect(() => {
     let cancelled = false;
@@ -263,7 +371,7 @@ export default function HomePage() {
         }
 
         if (!cancelled) {
-          await loadBundledDefaultImage();
+          await handleImageSelection(null, false, true);
         }
       } finally {
         if (!cancelled) {
@@ -273,96 +381,10 @@ export default function HomePage() {
     }
 
     void hydrateFromSession();
-    // Intentionally run once on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => {
       cancelled = true;
     };
-  }, []);
-
-  async function handleImageSelection(
-    file: File | null,
-    persist: boolean = true,
-    fallbackToDefault: boolean = true
-  ): Promise<boolean> {
-    const requestId = uploadRequestIdRef.current + 1;
-    uploadRequestIdRef.current = requestId;
-
-    if (!file) {
-      setIsProcessingImage(false);
-      revokeObjectUrlIfNeeded(imagePreviewUrl);
-      setBrightnessMap(null);
-      setFilename(undefined);
-      setImagePreviewUrl(undefined);
-      setImageError(undefined);
-      window.sessionStorage.removeItem(STORAGE_IMAGE_KEY);
-      if (fallbackToDefault) {
-        return loadBundledDefaultImage();
-      }
-      return false;
-    }
-
-    if (!["image/jpeg", "image/jpg", "image/png"].includes(file.type)) {
-      setIsProcessingImage(false);
-      setIsRenderAnimating(false);
-      setImageError("Unsupported file type. Please upload a JPEG or PNG image.");
-      return false;
-    }
-
-    setProcessingToken(requestId);
-    setIsProcessingImage(true);
-    setIsRenderAnimating(true);
-    setBrightnessMap(null);
-    setFilename(file.name);
-    setImageError(undefined);
-
-    try {
-      const viewportMaxWidth = Math.max(600, Math.floor(window.innerWidth * 0.55));
-      const viewportMaxHeight = Math.max(600, Math.floor(window.innerHeight * 0.8));
-      const nextBrightnessMap = await preprocessImage(file, {
-        maxWidth: viewportMaxWidth,
-        maxHeight: viewportMaxHeight,
-      });
-
-      if (requestId !== uploadRequestIdRef.current) {
-        return false;
-      }
-
-      const nextPreviewUrl = URL.createObjectURL(file);
-      revokeObjectUrlIfNeeded(imagePreviewUrl);
-      setBrightnessMap(nextBrightnessMap);
-      setImagePreviewUrl(nextPreviewUrl);
-      setImageError(undefined);
-      setAnimationToken(Date.now());
-      if (persist) {
-        const dataUrl = await fileToDataUrl(file);
-        if (requestId !== uploadRequestIdRef.current) {
-          return false;
-        }
-        const payload: StoredImagePayload = { name: file.name, dataUrl };
-        window.sessionStorage.setItem(STORAGE_IMAGE_KEY, JSON.stringify(payload));
-      }
-      return true;
-    } catch {
-      if (requestId !== uploadRequestIdRef.current) {
-        return false;
-      }
-      revokeObjectUrlIfNeeded(imagePreviewUrl);
-      setBrightnessMap(null);
-      setFilename(undefined);
-      setImagePreviewUrl(undefined);
-      setImageError("Could not process the image. Try another file.");
-      window.sessionStorage.removeItem(STORAGE_IMAGE_KEY);
-      if (fallbackToDefault) {
-        return loadBundledDefaultImage();
-      }
-      return false;
-    } finally {
-      if (requestId === uploadRequestIdRef.current) {
-        setIsProcessingImage(false);
-      }
-    }
-  }
+  }, [handleImageSelection]);
 
   function handleExport() {
     if (!brightnessMap || !dimensions || !poem.trim() || !previewViewport.width || !previewViewport.height) {

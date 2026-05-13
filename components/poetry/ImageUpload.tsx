@@ -1,5 +1,6 @@
 import { ImageSquare } from "@phosphor-icons/react";
 import Image from "next/image";
+import { useEffect, useState } from "react";
 import defaultReferenceImage from "@/branding/vp-logo.png";
 
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -15,6 +16,31 @@ type ImageUploadProps = {
 export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUploadProps) {
   const effectivePreviewUrl = previewUrl ?? defaultReferenceImage.src;
   const effectiveFilename = filename ?? "vp-logo.png";
+  const [popoverAspectRatio, setPopoverAspectRatio] = useState(
+    defaultReferenceImage.width / defaultReferenceImage.height
+  );
+
+  useEffect(() => {
+    if (!effectivePreviewUrl) {
+      return;
+    }
+
+    let cancelled = false;
+    const probe = new window.Image();
+
+    probe.onload = () => {
+      if (!cancelled && probe.naturalWidth > 0 && probe.naturalHeight > 0) {
+        setPopoverAspectRatio(probe.naturalWidth / probe.naturalHeight);
+      }
+    };
+
+    probe.src = effectivePreviewUrl;
+
+    return () => {
+      cancelled = true;
+      probe.onload = null;
+    };
+  }, [effectivePreviewUrl]);
 
   return (
     <section className="vp-panel flex flex-col gap-2 px-4 py-3">
@@ -68,11 +94,17 @@ export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUplo
           </PopoverTrigger>
           {effectivePreviewUrl ? (
             <PopoverContent align="end" sideOffset={8} className="w-[min(24rem,calc(100vw-2rem))] p-2">
-              <div className="overflow-hidden rounded-[6px] bg-black/10">
-                <img
+              <div
+                className="relative w-full overflow-hidden rounded-[6px] bg-black/10"
+                style={{ aspectRatio: `${popoverAspectRatio}` }}
+              >
+                <Image
                   src={effectivePreviewUrl}
                   alt={`${effectiveFilename} full preview`}
-                  className="block h-auto w-full"
+                  fill
+                  unoptimized
+                  sizes="(max-width: 768px) calc(100vw - 2rem), 24rem"
+                  className="object-contain object-center"
                 />
               </div>
             </PopoverContent>
