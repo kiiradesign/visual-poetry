@@ -27,7 +27,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: "Visual Poetry",
-  description: "Transform plain text poetry into image-guided visual compositions.",
+  description: "Turn your poems into generative art.",
   metadataBase: new URL(siteUrl),
   icons: {
     icon: "/branding/vp-favicon.svg",
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "Visual Poetry",
-    description: "Transform plain text poetry into image-guided visual compositions.",
+    description: "Turn your poems into generative art.",
     url: "/",
     siteName: "Visual Poetry",
     images: [
@@ -51,7 +51,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Visual Poetry",
-    description: "Transform plain text poetry into image-guided visual compositions.",
+    description: "Turn your poems into generative art.",
     images: ["/branding/opengraph.png"],
   },
 };
