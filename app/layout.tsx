@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { ThemedDialRoot } from "@/components/themed-dial-root";
+import "dialkit/styles.css";
 import { Providers } from "./providers";
 import "./globals.css";
 
@@ -36,6 +38,7 @@ export default function RootLayout({
         className={`${ibmPlexSans.variable} ${ibmPlexMono.variable} min-h-screen bg-background font-sans text-foreground antialiased`}
       >
         <Providers>{children}</Providers>
+        <ThemedDialRoot />
       </body>
     </html>
   );

@@ -1,31 +1,44 @@
 import { CaretDown } from "@phosphor-icons/react";
+import type { ExportFormat } from "@/lib/render/exportPng";
 
 import { cn } from "@/lib/utils";
 
 type ExportPanelProps = {
   scale: number;
+  format: ExportFormat;
   canExport: boolean;
   onScaleChange: (value: number) => void;
+  onFormatChange: (value: ExportFormat) => void;
   onExport: () => void;
   className?: string;
 };
 
-export function ExportPanel({ scale, canExport, onScaleChange, onExport, className }: ExportPanelProps) {
+export function ExportPanel({
+  scale,
+  format,
+  canExport,
+  onScaleChange,
+  onFormatChange,
+  onExport,
+  className,
+}: ExportPanelProps) {
   return (
     <section
       className={cn(
-        "flex flex-col gap-3 rounded-lg border border-solid border-border bg-card px-4 py-3 text-card-foreground shadow-sm",
+        "vp-panel flex flex-col gap-3 px-4 py-3",
         className
       )}
     >
-      <h2 className="text-base font-semibold">Export</h2>
+      <div>
+        <p className="vp-kicker">EXPORT</p>
+      </div>
 
-      <div className="flex items-center gap-2">
-        <div className="relative min-w-0 flex-1">
+      <div className="grid grid-cols-2 gap-2">
+        <div className="relative min-w-0">
           <select
             value={scale}
             onChange={(event) => onScaleChange(Number(event.target.value))}
-            className="vp-field h-8 w-full cursor-pointer appearance-none rounded-md pl-2.5 pr-7 text-sm"
+            className="vp-field h-9 w-full cursor-pointer appearance-none rounded-[8px] pl-2.5 pr-7 text-sm"
             aria-label="Export scale"
           >
             <option value={1}>1x</option>
@@ -38,12 +51,20 @@ export function ExportPanel({ scale, canExport, onScaleChange, onExport, classNa
           />
         </div>
 
-        <div
-          className="vp-field flex h-8 min-w-0 flex-1 cursor-default items-center justify-between rounded-md pl-2.5 pr-2 text-sm"
-          aria-label="Export format"
-        >
-          <span>PNG</span>
-          <CaretDown className="size-3.5 text-muted-foreground opacity-50" weight="bold" />
+        <div className="relative min-w-0">
+          <select
+            value={format}
+            onChange={(event) => onFormatChange(event.target.value as ExportFormat)}
+            className="vp-field h-9 w-full cursor-pointer appearance-none rounded-[8px] pl-2.5 pr-7 text-sm"
+            aria-label="Export format"
+          >
+            <option value="png">PNG</option>
+            <option value="jpg">JPG</option>
+          </select>
+          <CaretDown
+            className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"
+            weight="bold"
+          />
         </div>
       </div>
 
@@ -51,13 +72,13 @@ export function ExportPanel({ scale, canExport, onScaleChange, onExport, classNa
         type="button"
         onClick={onExport}
         disabled={!canExport}
-        className="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground transition-[transform,background-color,box-shadow,opacity] duration-150 [transition-timing-function:var(--ease-out)] hover:bg-primary/90 active:scale-[0.97] motion-reduce:active:scale-100 disabled:cursor-not-allowed disabled:opacity-50 disabled:active:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+        className="vp-action vp-action-primary w-full rounded-[8px] px-3 py-2 text-sm font-semibold motion-reduce:active:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring disabled:active:scale-100"
       >
-        Export image
+        Export artwork
       </button>
 
       {!canExport ? (
-        <p className="text-xs text-muted-foreground">
+        <p className="vp-copy text-xs">
           Add poem text and a reference image before exporting.
         </p>
       ) : null}

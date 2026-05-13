@@ -7,13 +7,16 @@ export type ExportViewport = {
   zoom: number;
 };
 
-export function exportPng(
+export type ExportFormat = "png" | "jpg";
+
+export function exportImage(
   poem: string,
   brightnessMap: BrightnessMap,
   dimensions: RenderDimensions,
   settings: RenderSettings,
   viewport: ExportViewport,
-  outputScale: number
+  outputScale: number,
+  format: ExportFormat
 ): void {
   const canvas = document.createElement("canvas");
 
@@ -26,7 +29,10 @@ export function exportPng(
 
   const link = document.createElement("a");
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  link.download = `visual-poetry-${timestamp}.png`;
-  link.href = canvas.toDataURL("image/png");
+  const mimeType = format === "jpg" ? "image/jpeg" : "image/png";
+  const quality = format === "jpg" ? 0.92 : undefined;
+
+  link.download = `visual-poetry-${timestamp}.${format}`;
+  link.href = canvas.toDataURL(mimeType, quality);
   link.click();
 }

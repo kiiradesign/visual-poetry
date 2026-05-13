@@ -192,20 +192,22 @@ export function RenderPreview({
   }, [animationToken]);
 
   return (
-    <section className="flex min-h-0 flex-1 flex-col rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
-      <h2 className="mb-3 text-xl font-semibold">Preview</h2>
+    <section className="vp-panel flex min-h-0 flex-1 flex-col p-4">
+      <div className="mb-3">
+        <p className="vp-kicker">PREVIEW</p>
+      </div>
       {errorMessage ? (
         <div
-          className="flex min-h-0 flex-1 items-center justify-center rounded-md border border-dashed border-solid border-border/80 px-6 text-center text-sm shadow-inner"
-          style={{ backgroundColor, color: textColor }}
+          className="flex min-h-0 flex-1 items-center justify-center rounded-[10px] border border-dashed px-6 text-center text-sm"
+          style={{ backgroundColor, color: textColor, borderColor: "var(--vp-row-border)" }}
         >
           {errorMessage}
         </div>
       ) : (
         <div
           ref={setViewportNode}
-          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-md border border-solid border-border p-2 shadow-inner"
-          style={{ backgroundColor }}
+          className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[10px] border border-solid p-3"
+          style={{ backgroundColor, borderColor: "var(--vp-row-border)" }}
         >
           {dimensions && finalScale > 0 ? (
             <div

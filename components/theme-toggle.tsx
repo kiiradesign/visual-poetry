@@ -17,7 +17,7 @@ export function ThemeToggle() {
 
   if (!mounted) {
     return (
-      <span className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-solid border-border bg-muted/50" aria-hidden />
+      <span className="vp-row inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-[8px]" aria-hidden />
     );
   }
 
@@ -27,7 +27,7 @@ export function ThemeToggle() {
     <button
       type="button"
       onClick={() => setTheme(isDark ? "light" : "dark")}
-      className="relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-md border border-solid border-border bg-background text-foreground transition-[background-color,transform,box-shadow] duration-150 [transition-timing-function:var(--ease-out)] hover:bg-muted active:scale-[0.94] motion-reduce:active:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+      className="vp-row vp-title relative inline-flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-[8px] transition-[background-color,transform,box-shadow] duration-150 [transition-timing-function:var(--ease-out)] active:scale-[0.94] motion-reduce:active:scale-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       title={isDark ? "Light mode" : "Dark mode"}
     >

@@ -165,7 +165,7 @@ export function ColorPicker({ id, label = "Color", value, onChange, className }:
           type="button"
           aria-label={label}
           className={cn(
-            "relative inline-flex size-7 shrink-0 cursor-pointer overflow-hidden rounded-md shadow-sm transition-[transform,box-shadow] duration-150 [transition-timing-function:var(--ease-out)] active:scale-[0.94] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+            "relative inline-flex size-7 shrink-0 cursor-pointer overflow-hidden rounded-[4px] transition-transform duration-150 [transition-timing-function:var(--ease-out)] active:scale-[0.94] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
             className
           )}
           style={{ backgroundColor: normalizedValue }}
@@ -175,14 +175,20 @@ export function ColorPicker({ id, label = "Color", value, onChange, className }:
         <PopoverPrimitive.Content
           align="end"
           sideOffset={8}
-          className="vp-color-picker z-50 w-64 origin-(--radix-popover-content-transform-origin) rounded-xl border border-solid border-border bg-popover p-3 text-popover-foreground shadow-lg outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-150 [transition-timing-function:var(--ease-out)]"
+          className="vp-color-picker z-50 w-64 origin-(--radix-popover-content-transform-origin) rounded-[8px] border p-3 outline-none data-[state=open]:animate-in data-[state=open]:fade-in-0 data-[state=open]:zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 duration-150 [transition-timing-function:var(--ease-out)]"
+          style={{
+            background: "var(--vp-panel-bg-strong)",
+            borderColor: "var(--vp-panel-border)",
+            color: "var(--vp-text-strong)",
+            boxShadow: "var(--vp-panel-shadow)",
+          }}
         >
           <HexColorPicker
             color={normalizedValue}
             onChange={(next) => onChange(normalizeHex(next))}
           />
           <div className="mt-3 flex items-center gap-2">
-            <div className="flex min-w-0 flex-1 items-center rounded-md border border-solid border-input bg-background pl-2.5 transition-[box-shadow] duration-150 [transition-timing-function:var(--ease-out)] focus-within:ring-1 focus-within:ring-ring">
+            <div className="vp-field flex min-w-0 flex-1 items-center rounded-[8px] pl-2.5 focus-within:ring-1 focus-within:ring-ring">
               {format === "hex" ? (
                 <span className="select-none font-mono text-sm text-muted-foreground">#</span>
               ) : null}

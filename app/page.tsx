@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { DialTheme } from "dialkit";
 import { useTheme } from "next-themes";
 import Image from "next/image";
 import { DetailControls, VisualControls } from "@/components/poetry/ColorControls";
@@ -9,7 +10,7 @@ import { ImageUpload } from "@/components/poetry/ImageUpload";
 import { PoemInput } from "@/components/poetry/PoemInput";
 import { RenderPreview } from "@/components/poetry/RenderPreview";
 import { ThemeToggle } from "@/components/theme-toggle";
-import { exportPng } from "@/lib/render/exportPng";
+import { exportImage, type ExportFormat } from "@/lib/render/exportPng";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { preprocessImage } from "@/lib/render/preprocessImage";
 import { BrightnessMap } from "@/lib/render/types";
@@ -93,6 +94,7 @@ type StoredSettingsPayload = {
   lineHeight: number;
   zoom: number;
   exportScale: number;
+  exportFormat: ExportFormat;
 };
 
 type PreviewViewport = { width: number; height: number };
@@ -112,8 +114,19 @@ function fileToDataUrl(file: File): Promise<string> {
   });
 }
 
+function resolveDialTheme(resolvedTheme: string | undefined): DialTheme {
+  if (resolvedTheme === "dark") {
+    return "dark";
+  }
+  if (resolvedTheme === "light") {
+    return "light";
+  }
+  return "system";
+}
+
 export default function HomePage() {
   const { resolvedTheme } = useTheme();
+  const [themeMounted, setThemeMounted] = useState(false);
   const [poem, setPoem] = useState(DEFAULT_POEM);
   const [textColor, setTextColor] = useState(LIGHT_MODE_TEXT);
   const [backgroundColor, setBackgroundColor] = useState(LIGHT_MODE_BACKGROUND);
@@ -121,6 +134,7 @@ export default function HomePage() {
   const [lineHeight, setLineHeight] = useState(1.1);
   const [zoom, setZoom] = useState(1);
   const [exportScale, setExportScale] = useState(2);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>({ width: 0, height: 0 });
   const [imageError, setImageError] = useState<string>();
   const [filename, setFilename] = useState<string>();
@@ -130,12 +144,17 @@ export default function HomePage() {
   const userCustomizedColorsRef = useRef(false);
 
   const canGenerate = poem.trim().length > 0 && brightnessMap !== null;
+  const dialTheme = themeMounted ? resolveDialTheme(resolvedTheme) : "system";
   const dimensions = useMemo(() => {
     if (!brightnessMap) {
       return null;
     }
     return getRenderDimensions(brightnessMap.width, brightnessMap.height, cellSize, lineHeight);
   }, [brightnessMap, cellSize, lineHeight]);
+
+  useEffect(() => {
+    setThemeMounted(true);
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -214,6 +233,9 @@ export default function HomePage() {
       if (typeof parsed.exportScale === "number") {
         setExportScale(parsed.exportScale);
       }
+      if (parsed.exportFormat === "png" || parsed.exportFormat === "jpg") {
+        setExportFormat(parsed.exportFormat);
+      }
     } catch {
       // Ignore malformed settings payload.
     }
@@ -228,12 +250,13 @@ export default function HomePage() {
         lineHeight,
         zoom,
         exportScale,
+        exportFormat,
       };
       window.localStorage.setItem(STORAGE_SETTINGS_KEY, JSON.stringify(payload));
     } catch {
       // Ignore storage write failures.
     }
-  }, [backgroundColor, cellSize, exportScale, lineHeight, textColor, zoom]);
+  }, [backgroundColor, cellSize, exportFormat, exportScale, lineHeight, textColor, zoom]);
 
   useEffect(() => {
     async function restoreStoredImage() {
@@ -316,7 +339,7 @@ export default function HomePage() {
       return;
     }
 
-    exportPng(
+    exportImage(
       poem,
       brightnessMap,
       dimensions,
@@ -331,31 +354,34 @@ export default function HomePage() {
         height: previewViewport.height,
         zoom,
       },
-      exportScale
+      exportScale,
+      exportFormat
     );
   }
 
   return (
-    <main className="h-screen overflow-hidden bg-background p-4 sm:p-6">
-      <div className="mx-auto grid h-full w-full max-w-screen-2xl gap-4 lg:grid-cols-[minmax(280px,340px)_1fr_minmax(240px,280px)]">
+    <main className="vp-shell h-screen overflow-hidden p-4 sm:p-5">
+      <div className="mx-auto grid h-full w-full max-w-screen-2xl gap-3 lg:grid-cols-[minmax(280px,340px)_1fr_minmax(240px,280px)]">
         <div className="flex min-h-0 flex-col gap-4">
-          <header className="rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0 flex-1">
+          <header className="vp-panel p-4">
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between gap-3">
                 <h1 className="sr-only">Visual Poetry</h1>
-                <Image
-                  src="/branding/vp-logo.svg"
-                  alt="Visual Poetry"
-                  width={180}
-                  height={28}
-                  priority
-                  className="h-7 w-auto select-none brightness-0 dark:invert"
-                />
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Turn plain text poetry into image-guided type compositions.
-                </p>
+                <div className="min-w-0 flex-1">
+                  <Image
+                    src="/branding/vp-logo.svg"
+                    alt="Visual Poetry"
+                    width={180}
+                    height={28}
+                    priority
+                    className="h-9 w-auto max-w-full select-none brightness-0 dark:invert"
+                  />
+                </div>
+                <ThemeToggle />
               </div>
-              <ThemeToggle />
+              <p className="vp-copy text-sm">
+                Turn your poems into generative art.
+              </p>
             </div>
           </header>
           <PoemInput value={poem} onChange={setPoem} />
@@ -381,11 +407,12 @@ export default function HomePage() {
           />
         </div>
 
-        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto">
+        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
           <DetailControls
             cellSize={cellSize}
             lineHeight={lineHeight}
             zoom={zoom}
+            theme={dialTheme}
             onCellSizeChange={setCellSize}
             onLineHeightChange={setLineHeight}
             onZoomChange={setZoom}
@@ -398,8 +425,10 @@ export default function HomePage() {
           />
           <ExportPanel
             scale={exportScale}
+            format={exportFormat}
             canExport={canGenerate}
             onScaleChange={setExportScale}
+            onFormatChange={setExportFormat}
             onExport={handleExport}
           />
           <AboutPanel />
@@ -411,18 +440,18 @@ export default function HomePage() {
 
 function AboutPanel() {
   return (
-    <section className="flex flex-col gap-2 rounded-lg border border-solid border-border bg-card px-4 py-3 text-card-foreground shadow-sm">
-      <h2 className="text-base font-semibold">About</h2>
-      <p className="text-sm leading-relaxed text-muted-foreground">
+    <section className="vp-panel flex min-h-0 flex-1 flex-col gap-2 px-4 py-3">
+      <p className="vp-kicker">ABOUT</p>
+      <p className="vp-copy text-sm leading-relaxed">
         Visual Poetry turns plain text into image-guided type compositions — words become pixels, poems become texture.
       </p>
-      <p className="text-sm leading-relaxed text-muted-foreground">
+      <p className="vp-copy text-sm leading-relaxed">
         Made by{" "}
         <a
           href="https://kiiraetc.substack.com"
           target="_blank"
           rel="noreferrer"
-          className="text-foreground underline-offset-4 transition-colors duration-150 [transition-timing-function:var(--ease-out)] hover:underline"
+          className="vp-title underline-offset-4 transition-colors duration-150 [transition-timing-function:var(--ease-out)] hover:underline"
         >
           postcards from chaos
         </a>

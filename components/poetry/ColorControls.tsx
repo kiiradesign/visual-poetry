@@ -1,12 +1,12 @@
-import { ThemeRange } from "@/components/theme-range";
+import { Slider, type DialTheme } from "dialkit";
 import { ColorPicker } from "@/components/ui/color-picker";
 import { cn } from "@/lib/utils";
-import { useEffect, useState } from "react";
 
 type DetailControlsProps = {
   cellSize: number;
   lineHeight: number;
   zoom: number;
+  theme: DialTheme;
   onCellSizeChange: (value: number) => void;
   onLineHeightChange: (value: number) => void;
   onZoomChange: (value: number) => void;
@@ -15,180 +15,68 @@ type DetailControlsProps = {
 
 const ZOOM_MIN = 0.3;
 const ZOOM_MAX = 1.5;
-const DEFAULT_ZOOM_PERCENT = 100;
+const MAX_CELL_SIZE = 50;
 
 export function DetailControls({
   cellSize,
   lineHeight,
   zoom,
+  theme,
   onCellSizeChange,
   onLineHeightChange,
   onZoomChange,
   className,
 }: DetailControlsProps) {
-  const maxCellSizePx = 50;
-  const defaultTextSizePercent = 20;
-  const defaultLineHeightPercent = 110;
-  const cellSizePercent = Math.max(1, Math.min(100, Math.round((cellSize / maxCellSizePx) * 100)));
+  const cellSizePercent = Math.max(1, Math.min(100, Math.round((cellSize / MAX_CELL_SIZE) * 100)));
   const lineHeightPercent = Math.max(80, Math.min(200, Math.round(lineHeight * 100)));
   const zoomPercent = Math.max(
     Math.round(ZOOM_MIN * 100),
     Math.min(Math.round(ZOOM_MAX * 100), Math.round(zoom * 100))
   );
-  const [textSizeInput, setTextSizeInput] = useState(String(cellSizePercent));
-  const [lineHeightInput, setLineHeightInput] = useState(String(lineHeightPercent));
-  const [zoomInput, setZoomInput] = useState(String(zoomPercent));
-
-  useEffect(() => {
-    setTextSizeInput(String(cellSizePercent));
-  }, [cellSizePercent]);
-
-  useEffect(() => {
-    setLineHeightInput(String(lineHeightPercent));
-  }, [lineHeightPercent]);
-
-  useEffect(() => {
-    setZoomInput(String(zoomPercent));
-  }, [zoomPercent]);
-
-  function commitTextSizeInput(rawValue: string) {
-    const parsed = Number(rawValue);
-    const normalized = Number.isFinite(parsed) && parsed >= 1 && parsed <= 100 ? Math.round(parsed) : defaultTextSizePercent;
-    const mappedPx = Math.max(1, Math.min(maxCellSizePx, (normalized / 100) * maxCellSizePx));
-    onCellSizeChange(mappedPx);
-    setTextSizeInput(String(normalized));
-  }
-
-  function commitLineHeightInput(rawValue: string) {
-    const parsed = Number(rawValue);
-    const normalized =
-      Number.isFinite(parsed) && parsed >= 80 && parsed <= 200 ? Math.round(parsed) : defaultLineHeightPercent;
-    onLineHeightChange(normalized / 100);
-    setLineHeightInput(String(normalized));
-  }
-
-  function commitZoomInput(rawValue: string) {
-    const parsed = Number(rawValue);
-    const minPercent = Math.round(ZOOM_MIN * 100);
-    const maxPercent = Math.round(ZOOM_MAX * 100);
-    const normalized =
-      Number.isFinite(parsed) && parsed >= minPercent && parsed <= maxPercent
-        ? Math.round(parsed)
-        : DEFAULT_ZOOM_PERCENT;
-    onZoomChange(normalized / 100);
-    setZoomInput(String(normalized));
-  }
 
   return (
     <section
       className={cn(
-        "flex flex-col rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm",
+        "vp-panel dialkit-root flex flex-col p-4",
         className
       )}
+      data-theme={theme}
     >
-      <h2 className="mb-4 text-xl font-semibold">Details</h2>
-      <label className="mt-1 block text-sm">
-        <span className="flex items-center justify-between gap-2">
-          <span>
-            Text size: <span className="font-semibold">{cellSizePercent}%</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={textSizeInput}
-              onChange={(event) => setTextSizeInput(event.target.value)}
-              onBlur={() => commitTextSizeInput(textSizeInput)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  commitTextSizeInput(textSizeInput);
-                }
-              }}
-              className="vp-field h-8 w-16 rounded-md px-2 text-right text-sm"
-              aria-label="Text size percentage"
-            />
-            <span className="text-xs text-muted-foreground">%</span>
-          </span>
-        </span>
-        <ThemeRange
+      <div className="mb-4">
+        <p className="vp-kicker">PARAMETERS</p>
+      </div>
+      <div className="flex flex-col gap-2">
+        <Slider
+          label="Text size"
+          value={cellSizePercent}
           min={1}
           max={100}
           step={1}
-          value={cellSizePercent}
+          unit="%"
           onChange={(percent) => {
-            const mappedPx = Math.max(1, Math.min(maxCellSizePx, (percent / 100) * maxCellSizePx));
+            const mappedPx = Math.max(1, Math.min(MAX_CELL_SIZE, (percent / 100) * MAX_CELL_SIZE));
             onCellSizeChange(mappedPx);
           }}
-          className="mt-2 w-full"
-          aria-label="Text size"
         />
-      </label>
-      <label className="mt-5 block text-sm">
-        <span className="flex items-center justify-between gap-2">
-          <span>
-            Line height: <span className="font-semibold">{lineHeightPercent}%</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={lineHeightInput}
-              onChange={(event) => setLineHeightInput(event.target.value)}
-              onBlur={() => commitLineHeightInput(lineHeightInput)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  commitLineHeightInput(lineHeightInput);
-                }
-              }}
-              className="vp-field h-8 w-16 rounded-md px-2 text-right text-sm"
-              aria-label="Line height percentage"
-            />
-            <span className="text-xs text-muted-foreground">%</span>
-          </span>
-        </span>
-        <ThemeRange
-          min={0.8}
-          max={2}
-          step={0.05}
-          value={lineHeight}
-          onChange={onLineHeightChange}
-          className="mt-2 w-full"
-          aria-label="Line height"
+        <Slider
+          label="Line height"
+          value={lineHeightPercent}
+          min={80}
+          max={200}
+          step={5}
+          unit="%"
+          onChange={(percent) => onLineHeightChange(percent / 100)}
         />
-      </label>
-      <label className="mt-5 block text-sm">
-        <span className="flex items-center justify-between gap-2">
-          <span>
-            Zoom: <span className="font-semibold">{zoomPercent}%</span>
-          </span>
-          <span className="flex items-center gap-1">
-            <input
-              type="text"
-              inputMode="numeric"
-              value={zoomInput}
-              onChange={(event) => setZoomInput(event.target.value)}
-              onBlur={() => commitZoomInput(zoomInput)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") {
-                  commitZoomInput(zoomInput);
-                }
-              }}
-              className="vp-field h-8 w-16 rounded-md px-2 text-right text-sm"
-              aria-label="Zoom percentage"
-            />
-            <span className="text-xs text-muted-foreground">%</span>
-          </span>
-        </span>
-        <ThemeRange
-          min={ZOOM_MIN}
-          max={ZOOM_MAX}
-          step={0.05}
-          value={zoom}
-          onChange={onZoomChange}
-          className="mt-2 w-full"
-          aria-label="Zoom"
+        <Slider
+          label="Zoom"
+          value={zoomPercent}
+          min={Math.round(ZOOM_MIN * 100)}
+          max={Math.round(ZOOM_MAX * 100)}
+          step={5}
+          unit="%"
+          onChange={(percent) => onZoomChange(percent / 100)}
         />
-      </label>
+      </div>
     </section>
   );
 }
@@ -211,16 +99,18 @@ export function VisualControls({
   return (
     <section
       className={cn(
-        "flex flex-col rounded-lg border border-solid border-border bg-card p-4 text-card-foreground shadow-sm",
+        "vp-panel flex flex-col p-4",
         className
       )}
     >
-      <h2 className="mb-4 text-xl font-semibold">Colors</h2>
+      <div className="mb-4">
+        <p className="vp-kicker">PALETTE</p>
+      </div>
       <div className="flex flex-col gap-2">
-        <label className="flex items-center justify-between gap-3 rounded-md border border-solid border-border px-3 py-2 text-sm">
-          <span>Text</span>
+        <label className="vp-row flex items-center justify-between gap-3 px-3 py-2 text-sm">
+          <span className="vp-copy">Text</span>
           <span className="flex items-center gap-2.5">
-            <span className="font-mono text-xs uppercase tabular-nums text-muted-foreground">
+            <span className="vp-row-value text-xs uppercase tabular-nums">
               {textColor.toUpperCase()}
             </span>
             <ColorPicker
@@ -231,10 +121,10 @@ export function VisualControls({
             />
           </span>
         </label>
-        <label className="flex items-center justify-between gap-3 rounded-md border border-solid border-border px-3 py-2 text-sm">
-          <span>Background</span>
+        <label className="vp-row flex items-center justify-between gap-3 px-3 py-2 text-sm">
+          <span className="vp-copy">Background</span>
           <span className="flex items-center gap-2.5">
-            <span className="font-mono text-xs uppercase tabular-nums text-muted-foreground">
+            <span className="vp-row-value text-xs uppercase tabular-nums">
               {backgroundColor.toUpperCase()}
             </span>
             <ColorPicker
