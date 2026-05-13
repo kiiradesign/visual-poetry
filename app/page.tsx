@@ -443,20 +443,29 @@ function AboutPanel() {
     <section className="vp-panel flex min-h-0 flex-1 flex-col gap-2 px-4 py-3">
       <p className="vp-kicker">ABOUT</p>
       <p className="vp-copy text-sm leading-relaxed">
-        Visual Poetry turns plain text into image-guided type compositions — words become pixels, poems become texture.
+      Paste a poem. Upload a photo. The words take the shape of the image, turning the poem into an artwork.
       </p>
-      <p className="vp-copy text-sm leading-relaxed">
-        Made by{" "}
-        <a
-          href="https://kiiraetc.substack.com"
-          target="_blank"
-          rel="noreferrer"
-          className="vp-title underline-offset-4 transition-colors duration-150 [transition-timing-function:var(--ease-out)] hover:underline"
-        >
-          postcards from chaos
-        </a>
-        .
-      </p>
+      <div className="mt-auto flex flex-col gap-2 pt-5">
+        <div className="flex items-center justify-between gap-y-1">
+          <a
+            href="https://kiira.in"
+            target="_blank"
+            rel="noreferrer"
+            className="vp-copy w-fit text-sm leading-relaxed transition-colors duration-150 [transition-timing-function:var(--ease-out)] hover:text-foreground"
+          >
+            Made by Keerthi
+          </a>
+          <a
+            href="https://x.com/kiiradesign"
+            target="_blank"
+            rel="noreferrer"
+            className="vp-copy w-fit text-sm leading-relaxed transition-colors duration-150 [transition-timing-function:var(--ease-out)] hover:text-foreground"
+          >
+            X(Twitter)
+          </a>
+        </div>
+        <p className="vp-copy text-xs leading-relaxed">v.1.0, 2026.</p>
+      </div>
     </section>
   );
 }

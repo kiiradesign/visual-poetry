@@ -10,21 +10,11 @@ This project aims to reunite the draft with its visual soul. By using a poem's w
 
 ## Features
 
-- Poetry Input: Copy and paste raw markdown or text drafts directly into the editor.
-- Visual Reference: Upload a reference image (e.g., a photo of a specific flower or insect) to guide the layout and color palette.
-- Text-as-Pixel Rendering: Uses `@chenglou/pretext` only (legacy mode removed), with silhouette-constrained packing and seamless text looping.
-- Anti-banding Text Placement: Reduces vertical line artifacts via deterministic run staggering and sub-cell glyph jitter while preserving silhouette coverage.
-- Three-pane layout: editor on the left, preview in the center (always fills viewport height), and controls + about on the right.
-- Detail Controls: Text size, line height, and **zoom** (subject size, decoupled from text density). Tonal contrast strength is held at a fixed optimal value.
-- Viewport-fit Rendering: Preview always centers the subject and fits it to the preview area regardless of text size; export matches the preview dimensions × 1x/2x/4x scale, so what you see is exactly what you export.
-- DialKit-inspired Control UI: Panel shells, sliders, export controls, and image upload surfaces are styled to match Josh Puckett's DialKit visual language while preserving the app's existing three-column workflow.
-- Custom Hex / RGB / HSL Color Picker: Sat/val square + hue slider + format-aware editable input (popover-based, no native OS color dialog).
-- Dark/Light Theming: `next-themes` mode toggle drives both the app shell and the embedded DialKit controls/root.
-- Theme-aware Defaults: Light mode defaults to warm paper/ink (`#F4F1EA` / `#2D2926`) and dark mode to Prussian blue/pale blue-white (`#003153` / `#E6EEF2`).
-- Animated Preview: Hammer-strike style glyph reveal (strong ease-out) on image load/refresh; slider changes do not retrigger animation.
-- Motion Polish: Custom easing curves (CSS vars), scale-on-press feedback across pressables, `AnimatePresence` icon swaps, and `prefers-reduced-motion` support throughout.
-- Image Reference Panel: Split upload/thumbnail layout with larger preview tile and clickable popover image preview.
-- Generative Export: Save the resulting visual poetry as a high-resolution PNG or JPG at 1x / 2x / 4x.
+- Paste a poem and upload a reference image.
+- Turn poem text into image-guided generative artwork.
+- Adjust text size, line height, zoom, and colors with a live preview.
+- Work in a three-pane layout with dark/light theming.
+- Export artwork as PNG or JPG at 1x, 2x, or 4x.
 
 # Tech Stack
 
@@ -202,19 +192,4 @@ The app is organized into three columns inside a `max-w-screen-2xl` (1536px) con
 | Right | `minmax(240px, 280px)` | Details (text size / line height / zoom), Colors (custom picker), Export (scale + PNG/JPG + action), About |
 
 Below the `lg` breakpoint the columns collapse to a single vertical stack: editor → preview → controls.
-
-## Paper Workflow
-
-Current design iteration flow with Paper MCP:
-
-1. Create or select a Paper frame representing the target UI state (light/dark variants can be separate frames).
-2. Make visual edits directly on canvas (spacing, card grouping, typography hierarchy, controls, slider look).
-3. Sync selected frame to code by pulling frame structure/styles (`get_selection`, `get_tree_summary`, `get_jsx`) and mapping deltas into React/Tailwind components.
-4. Keep Paper-specific visual-only affordances (e.g., static slider thumbs in mockups) while preserving interactive behavior in code.
-5. Validate with lint/build and verify browser parity against the selected Paper frame.
-
-Notes:
-
-- Paper is used as the design source of truth for layout and style direction during iteration.
-- Code remains the source of truth for runtime behavior (render pipeline, animation triggers, exports, preprocessing).
 
