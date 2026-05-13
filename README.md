@@ -4,8 +4,6 @@ This project is a generative art tool designed to bridge the gap between written
 
 ## The Vision
 
-A tool for turning poems into images, using the words themselves as the pixels.
-
 Each poem I write on my Substack [postcards from chaos](https://kiiraetc.substack.com) is inspired by something physical, usually a flower or an insect. This project started as a way to make that visible. Paste a poem, upload a photo, and the words take the shape of the image's subject. The poem becomes something you look at rather than read.
 
 ## Features
