@@ -54,10 +54,12 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 - A brand-new tab/session starts from the bundled default image and default controls; refreshing the page restores the current poem, uploaded image, colors, and settings from `sessionStorage`.
 - Pick text/background colors via the custom popover picker (sat/val square + hue slider + Hex/RGB/HSL input); the browser-native color picker is intentionally not used.
 - Tune `Text size`, `Line height`, and `Zoom` in the **Details** panel.
+- When the poem is empty, the preview switches to an idle cycler loader tinted with the current text color; in that state the **Parameters** panel is locked, but the **Palette** remains editable.
 - Preview always centers and fits the subject to the preview area; zoom controls subject size, text size controls glyph density.
 - The render palette defaults stay the same in both light and dark UI themes unless the user customizes them.
 - Click the image thumbnail in the **Image** panel to open a larger popover preview of the uploaded reference.
 - The image thumbnail fills its frame edge-to-edge, while the upload card on the left stays button-width and truncates long filenames.
+- The image popover preview keeps a fixed width, preserves the original aspect ratio of the uploaded image, and shows the full image without cropping.
 - Export generated output to PNG or JPG at 1x/2x/4x — the exported image has the same logical dimensions as the preview panel multiplied by the chosen scale.
 
 ## Render pipeline (current)
@@ -80,7 +82,7 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 6. **Viewport fit + zoom**:
   - The preview tracks its content area via `ResizeObserver`.
   - `fitScale = min(viewport.W / natural.W, viewport.H / natural.H)` projects the natural-size composition into the preview area.
-  - `finalScale = fitScale × zoom` applies the user's zoom multiplier (default `1.0`).
+  - `finalScale = fitScale × zoom` applies the user's zoom multiplier (default `0.95`).
   - The subject is always centered, regardless of text size or aspect ratio.
 7. Preview rendering uses positioned glyph spans (`framer-motion`) with a single `transform: scale(finalScale)` applied to the entire group; glyph entry animates with a strong ease-out curve `cubic-bezier(0.23, 1, 0.32, 1)`.
 8. Export rendering uses an HTML5 canvas sized to `viewport × outputScale`, fills the background, then draws glyphs using the same fit-scale + zoom + centering math — so the exported PNG/JPG matches the preview pixel-for-pixel (scaled by 1x/2x/4x).
@@ -153,7 +155,7 @@ That makes it closer to **typewriter art** than terminal ASCII: constrained, gri
 
 - `Text size` (`cellSize`): Changes grid density. Smaller values increase glyph count and fine detail; larger values create bolder, more abstract shapes. Does **not** change the rendered subject's physical size in the preview — only how many glyphs make up the image.
 - `Line height`: Controls vertical row step. Lower values tighten rows (denser texture); higher values open vertical breathing room and can emphasize stroke direction.
-- `Zoom`: Multiplier on the fit-to-viewport scale. Range `30%`–`150%`, default `100%`. Use this to grow or shrink the subject within the preview frame without changing glyph density.
+- `Zoom`: Multiplier on the fit-to-viewport scale. Range `30%`–`150%`, default `95%`. Use this to grow or shrink the subject within the preview frame without changing glyph density.
 - `Text color` / `Background color`: Do not alter geometric packing, only perception of tonal depth and edge separation.
 
 Tonal contrast strength (formerly the `Details` slider) is fixed at `0.65` in `lib/render/types.ts`. This value is below the posterization threshold so the preview faithfully matches the export.
@@ -180,6 +182,7 @@ Motion in the app is shaped by Emil Kowalski's design-engineering principles ([a
 - **Strong ease-out entrance** for the glyph reveal (`cubic-bezier(0.23, 1, 0.32, 1)`), giving each character a snap instead of the previous linear pacing.
 - **AnimatePresence icon swap** on the theme toggle (rotate + scale crossfade) replacing the previous instant Sun↔Moon swap.
 - **Preview loader timing** — the image-processing loader runs for a fixed total of `1.2s`, including its fade-out, so the startup/refresh transition feels deliberate rather than abrupt.
+- **Idle preview state** — when there is no poem text yet, the preview shows a looping cycler instead of helper copy, using the active text color so the empty state still feels connected to the current palette.
 - **Image preview entry** — uploaded reference image thumbnails fade in while scaling from 90% to 100%, because nothing in the real world appears from nothing.
 - **`prefers-reduced-motion`** honored throughout: glyph reveal becomes instant, press-scales are disabled, slider thumb hover-scale is removed.
 - **Hover gating** via `@media (hover: hover) and (pointer: fine)` so touch devices don't trigger false hover states on tap.

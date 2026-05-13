@@ -99,7 +99,7 @@ export default function HomePage() {
   const [backgroundColor, setBackgroundColor] = useState(DEFAULT_RENDER_BACKGROUND);
   const [cellSize, setCellSize] = useState(2.5);
   const [lineHeight, setLineHeight] = useState(0.8);
-  const [zoom, setZoom] = useState(0.8);
+  const [zoom, setZoom] = useState(0.95);
   const [exportScale, setExportScale] = useState(2);
   const [exportFormat, setExportFormat] = useState<ExportFormat>("png");
   const [previewViewport, setPreviewViewport] = useState<PreviewViewport>({ width: 0, height: 0 });
@@ -116,6 +116,7 @@ export default function HomePage() {
 
   const isThemeResolved = themeMounted && (resolvedTheme === "dark" || resolvedTheme === "light");
   const isAppReady = isThemeResolved && storageHydrated;
+  const isPoemEmpty = poem.trim().length === 0;
   const canGenerate = poem.trim().length > 0 && brightnessMap !== null;
   const dialTheme = themeMounted ? resolveDialTheme(resolvedTheme) : "system";
   const dimensions = useMemo(() => {
@@ -452,7 +453,7 @@ export default function HomePage() {
             lineHeight={lineHeight}
             zoom={zoom}
             theme={dialTheme}
-            disabled={isProcessingImage || isRenderAnimating}
+            disabled={isProcessingImage || isRenderAnimating || isPoemEmpty}
             onCellSizeChange={setCellSize}
             onLineHeightChange={setLineHeight}
             onZoomChange={setZoom}
@@ -486,6 +487,9 @@ function AboutPanel() {
       <p className="vp-kicker">ABOUT</p>
       <p className="vp-copy text-sm leading-relaxed">
       Paste a poem. Upload a photo. The words take the shape of the image, turning the poem into an artwork.
+      </p>
+      <p className="vp-copy text-sm leading-relaxed">
+        Everything runs locally in your browser. No images or data are ever stored or sent to a server.
       </p>
       <div className="mt-auto flex flex-col gap-2 pt-5">
         <div className="flex items-center justify-between gap-y-1">

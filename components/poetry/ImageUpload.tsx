@@ -68,13 +68,11 @@ export function ImageUpload({ onSelect, filename, previewUrl, error }: ImageUplo
           </PopoverTrigger>
           {effectivePreviewUrl ? (
             <PopoverContent align="end" sideOffset={8} className="w-[min(24rem,calc(100vw-2rem))] p-2">
-              <div className="relative aspect-square w-full overflow-hidden rounded-[6px] bg-black/10">
-                <Image
+              <div className="overflow-hidden rounded-[6px] bg-black/10">
+                <img
                   src={effectivePreviewUrl}
                   alt={`${effectiveFilename} full preview`}
-                  fill
-                  unoptimized
-                  className="object-cover object-center"
+                  className="block h-auto w-full"
                 />
               </div>
             </PopoverContent>

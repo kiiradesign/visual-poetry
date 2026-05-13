@@ -56,10 +56,10 @@ export function RenderPreview({
 
   const shouldUseLoader = processingToken > 0;
   const showLoader = isProcessing || (shouldUseLoader && showLoaderOverlay);
-  const statusMessage = showLoader
-    ? null
-    : !poem.trim()
-      ? "Add poem text to generate a preview."
+  const showEmptyPoemLoader = !showLoader && !poem.trim();
+  const statusMessage =
+    showLoader || showEmptyPoemLoader
+      ? null
       : !brightnessMap
         ? "Upload a reference image to generate preview."
         : null;
@@ -160,6 +160,20 @@ export function RenderPreview({
   }, [canRenderPreview, isProcessing, loaderCycleComplete, showLoaderOverlay]);
 
   useEffect(() => {
+    if (showLoaderOverlay || isProcessing || !canRenderPreview) {
+      return;
+    }
+
+    setRevealedAnimationToken(animationToken);
+  }, [animationToken, canRenderPreview, isProcessing, showLoaderOverlay]);
+
+  useEffect(() => {
+    if (!showLoader && !canRenderPreview) {
+      onRenderAnimationStateChangeRef.current?.(false);
+    }
+  }, [canRenderPreview, showLoader]);
+
+  useEffect(() => {
     if (!isRenderMounted || !dimensions || !canvasRef.current) {
       return;
     }
@@ -245,7 +259,7 @@ export function RenderPreview({
       <div className="mb-3">
         <p className="vp-kicker">PREVIEW</p>
       </div>
-      {showLoader || isRenderMounted ? (
+      {showLoader || isRenderMounted || showEmptyPoemLoader ? (
         <div
           ref={setViewportNode}
           className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[10px] border border-solid p-3"
@@ -276,6 +290,19 @@ export function RenderPreview({
                   pattern="full"
                 />
               </div>
+            </div>
+          ) : null}
+          {showEmptyPoemLoader ? (
+            <div className="flex items-center justify-center">
+              <DotmSquare11
+                ariaLabel="Waiting for poem text"
+                color={textColor}
+                dotShape="square"
+                size={34}
+                dotSize={4}
+                speed={PREVIEW_LOADER_SPEED}
+                pattern="full"
+              />
             </div>
           ) : null}
         </div>
