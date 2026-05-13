@@ -1,12 +1,17 @@
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { getRenderDimensions, layoutTextGrid, sampleBrightnessAtCell } from "@/lib/render/layoutTextGrid";
-import { BrightnessMap, DETAIL_STRENGTH } from "@/lib/render/types";
-
-// Strong ease-out curve — built-in CSS easings are too weak for entrance animations.
-const STRIKE_EASE = [0.23, 1, 0.32, 1] as const;
+import { DotmSquare11 } from "@/components/ui/dotm-square-11";
+import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
+import { buildRenderGlyphs, paintGlyphsToCanvas } from "@/lib/render/renderToCanvas";
+import { BrightnessMap } from "@/lib/render/types";
 
 type ViewportSize = { width: number; height: number };
+
+const PREVIEW_LOADER_SPEED = 1.5;
+const PREVIEW_LOADER_EXIT_MS = 180;
+const PREVIEW_LOADER_TOTAL_MS = 1200;
+const PREVIEW_LOADER_CYCLE_MS = PREVIEW_LOADER_TOTAL_MS - PREVIEW_LOADER_EXIT_MS;
+const PREVIEW_RENDER_MS = 2000;
 
 type RenderPreviewProps = {
   poem: string;
@@ -16,26 +21,12 @@ type RenderPreviewProps = {
   cellSize: number;
   lineHeight: number;
   zoom: number;
+  isProcessing?: boolean;
+  processingToken?: number;
   animationToken: number;
   onViewportChange?: (size: ViewportSize) => void;
+  onRenderAnimationStateChange?: (isAnimating: boolean) => void;
 };
-
-function estimateBackgroundBrightness(brightnessMap: BrightnessMap): number {
-  const { width, height, values } = brightnessMap;
-  const corners = [
-    values[0],
-    values[Math.max(0, width - 1)],
-    values[Math.max(0, (height - 1) * width)],
-    values[Math.max(0, height * width - 1)],
-  ];
-  return corners.reduce((sum, value) => sum + value, 0) / corners.length;
-}
-
-function antiBandingJitter(col: number, row: number, amplitude: number): number {
-  const hash = (row * 92821 + col * 68917) % 997;
-  const normalized = hash / 996;
-  return (normalized * 2 - 1) * amplitude;
-}
 
 export function RenderPreview({
   poem,
@@ -45,27 +36,47 @@ export function RenderPreview({
   cellSize,
   lineHeight,
   zoom,
+  isProcessing = false,
+  processingToken = 0,
   animationToken,
   onViewportChange,
+  onRenderAnimationStateChange,
 }: RenderPreviewProps) {
-  const errorMessage = !poem.trim()
-    ? "Add poem text to generate a preview."
-    : !brightnessMap
-      ? "Upload a reference image to generate preview."
-      : null;
-
+  const [loaderCycleComplete, setLoaderCycleComplete] = useState(!isProcessing && processingToken <= 0);
+  const [showLoaderOverlay, setShowLoaderOverlay] = useState(isProcessing || processingToken > 0);
+  const [isLoaderFading, setIsLoaderFading] = useState(false);
+  const [revealedAnimationToken, setRevealedAnimationToken] = useState<number | null>(null);
   const [viewportNode, setViewportNode] = useState<HTMLDivElement | null>(null);
   const [viewportSize, setViewportSize] = useState<ViewportSize>({ width: 0, height: 0 });
   const onViewportChangeRef = useRef(onViewportChange);
+  const onRenderAnimationStateChangeRef = useRef(onRenderAnimationStateChange);
+  const animatedTokenRef = useRef<number | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const prefersReducedMotion = useReducedMotion();
+
+  const shouldUseLoader = processingToken > 0;
+  const showLoader = isProcessing || (shouldUseLoader && showLoaderOverlay);
+  const statusMessage = showLoader
+    ? null
+    : !poem.trim()
+      ? "Add poem text to generate a preview."
+      : !brightnessMap
+        ? "Upload a reference image to generate preview."
+        : null;
 
   useEffect(() => {
     onViewportChangeRef.current = onViewportChange;
   }, [onViewportChange]);
 
+  useEffect(() => {
+    onRenderAnimationStateChangeRef.current = onRenderAnimationStateChange;
+  }, [onRenderAnimationStateChange]);
+
   useLayoutEffect(() => {
     if (!viewportNode) {
       return;
     }
+
     const initialRect = viewportNode.getBoundingClientRect();
     const initialSize = { width: initialRect.width, height: initialRect.height };
     setViewportSize(initialSize);
@@ -73,12 +84,12 @@ export function RenderPreview({
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        const { width, height } = entry.contentRect;
-        const next = { width, height };
+        const next = { width: entry.contentRect.width, height: entry.contentRect.height };
         setViewportSize(next);
         onViewportChangeRef.current?.(next);
       }
     });
+
     observer.observe(viewportNode);
     return () => observer.disconnect();
   }, [viewportNode]);
@@ -90,162 +101,192 @@ export function RenderPreview({
     return getRenderDimensions(brightnessMap.width, brightnessMap.height, cellSize, lineHeight);
   }, [brightnessMap, cellSize, lineHeight]);
 
-  const glyphs = useMemo(() => {
+  const renderGlyphs = useMemo(() => {
     if (!brightnessMap || !dimensions || !poem.trim()) {
       return [];
     }
-    const grid = layoutTextGrid(
-      poem,
-      brightnessMap,
-      dimensions.cols,
-      dimensions.rows,
-      cellSize
-    );
-
-    const rowStep = Math.max(1, Math.floor(cellSize * lineHeight));
-    const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
-    const points: Array<{ glyph: string; x: number; y: number; col: number; row: number; order: number }> = [];
-    const jitterAmplitude = Math.min(0.9, cellSize * 0.12);
-    for (let row = 0; row < dimensions.rows; row += 1) {
-      for (let col = 0; col < dimensions.cols; col += 1) {
-        const glyph = grid[row * dimensions.cols + col];
-        if (glyph !== " ") {
-          const jitterX = antiBandingJitter(col, row, jitterAmplitude);
-          points.push({
-            glyph,
-            x: col * cellSize + jitterX,
-            y: row * rowStep,
-            col,
-            row,
-            order: row * dimensions.cols + col,
-          });
-        }
-      }
-    }
-
-    const sliderStrength = DETAIL_STRENGTH;
-    const tonalSignals = new Float32Array(points.length);
-    let minSignal = Number.POSITIVE_INFINITY;
-    let maxSignal = Number.NEGATIVE_INFINITY;
-
-    for (let i = 0; i < points.length; i += 1) {
-      const p = points[i];
-      const brightness = sampleBrightnessAtCell(
-        brightnessMap,
-        p.col,
-        p.row,
-        dimensions.cols,
-        dimensions.rows
-      );
-      const contrast = Math.abs(brightness - backgroundBrightness);
-      const tonalSignal = Math.max(0, Math.min(1, (1 - brightness) * 0.8 + contrast * 1.4));
-      tonalSignals[i] = tonalSignal;
-      minSignal = Math.min(minSignal, tonalSignal);
-      maxSignal = Math.max(maxSignal, tonalSignal);
-    }
-
-    const signalRange = Math.max(0.0001, maxSignal - minSignal);
-    const minAlpha = 0.16;
-    const baseAlpha = 0.9;
-    const maxAlpha = 1;
-
-    const withStyle = points.map((p, i) => {
-      const normalized = Math.max(0, Math.min(1, (tonalSignals[i] - minSignal) / signalRange));
-      const curved = Math.pow(normalized, 0.72);
-      const contrastBoost = 1 + sliderStrength * 3.1;
-      const contrasted = Math.max(0, Math.min(1, (curved - 0.5) * contrastBoost + 0.5));
-      const contrastedAlpha = minAlpha + (maxAlpha - minAlpha) * contrasted;
-      const alpha = Math.max(minAlpha, Math.min(1, baseAlpha + (contrastedAlpha - baseAlpha) * sliderStrength));
-      const weight = Math.round((300 + normalized * 400) / 100) * 100;
-      return { ...p, alpha, weight };
-    });
-
-    withStyle.sort((a, b) => a.y - b.y || a.x - b.x || a.order - b.order);
-    return withStyle;
+    return buildRenderGlyphs(poem, brightnessMap, dimensions, cellSize, lineHeight);
   }, [brightnessMap, cellSize, dimensions, lineHeight, poem]);
 
-  const finalScale = useMemo(() => {
-    if (!dimensions || !viewportSize.width || !viewportSize.height) {
-      return 0;
-    }
-    const fit = Math.min(
-      viewportSize.width / dimensions.width,
-      viewportSize.height / dimensions.height
-    );
-    return fit * zoom;
-  }, [dimensions, viewportSize, zoom]);
-
-  const drawDurationSeconds = 3.5;
-  const previewGlyphs = useMemo(() => {
-    if (glyphs.length <= 24000) {
-      return glyphs;
-    }
-    return glyphs.filter((_, index) => index % 2 === 0);
-  }, [glyphs]);
-  const delayStep = previewGlyphs.length > 0 ? drawDurationSeconds / previewGlyphs.length : 0;
-  const animatedTokenRef = useRef<number | null>(null);
-  const prefersReducedMotion = useReducedMotion();
-  const shouldAnimate = !prefersReducedMotion && animatedTokenRef.current !== animationToken;
+  const canRenderPreview = Boolean(
+    dimensions && brightnessMap && poem.trim() && viewportSize.width > 0 && viewportSize.height > 0
+  );
+  const isRenderMounted = canRenderPreview && revealedAnimationToken === animationToken;
+  const shouldAnimate = isRenderMounted && !prefersReducedMotion && animatedTokenRef.current !== animationToken;
 
   useEffect(() => {
-    animatedTokenRef.current = animationToken;
-  }, [animationToken]);
+    if (!shouldUseLoader) {
+      setShowLoaderOverlay(false);
+      setIsLoaderFading(false);
+      setLoaderCycleComplete(true);
+      return;
+    }
+
+    setLoaderCycleComplete(false);
+    setShowLoaderOverlay(true);
+    setIsLoaderFading(false);
+    setRevealedAnimationToken(null);
+
+    const timer = window.setTimeout(() => {
+      setLoaderCycleComplete(true);
+    }, PREVIEW_LOADER_CYCLE_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [processingToken, shouldUseLoader]);
+
+  useEffect(() => {
+    if (!showLoaderOverlay || isProcessing || !loaderCycleComplete || !canRenderPreview) {
+      return;
+    }
+
+    setRevealedAnimationToken(animationToken);
+    setIsLoaderFading(true);
+
+    const timer = window.setTimeout(() => {
+      setShowLoaderOverlay(false);
+      setIsLoaderFading(false);
+    }, PREVIEW_LOADER_EXIT_MS);
+
+    return () => window.clearTimeout(timer);
+  }, [animationToken, canRenderPreview, isProcessing, loaderCycleComplete, showLoaderOverlay]);
+
+  useEffect(() => {
+    if (!showLoaderOverlay || isProcessing || !loaderCycleComplete || canRenderPreview) {
+      return;
+    }
+
+    setShowLoaderOverlay(false);
+    setIsLoaderFading(false);
+  }, [canRenderPreview, isProcessing, loaderCycleComplete, showLoaderOverlay]);
+
+  useEffect(() => {
+    if (!isRenderMounted || !dimensions || !canvasRef.current) {
+      return;
+    }
+
+    const canvas = canvasRef.current;
+    const settings = { cellSize, lineHeight, textColor, backgroundColor };
+    const outputScale = Math.min(window.devicePixelRatio || 1, 2);
+
+    const drawFrame = (visibleGlyphCount?: number) => {
+      paintGlyphsToCanvas(canvas, renderGlyphs, dimensions, settings, {
+        viewportWidth: viewportSize.width,
+        viewportHeight: viewportSize.height,
+        zoom,
+        outputScale,
+        visibleGlyphCount,
+      });
+    };
+
+    let frameId = 0;
+    let unlockFrameId = 0;
+
+    if (!shouldAnimate || renderGlyphs.length <= 1) {
+      drawFrame(renderGlyphs.length);
+      animatedTokenRef.current = animationToken;
+      unlockFrameId = window.requestAnimationFrame(() => {
+        onRenderAnimationStateChangeRef.current?.(false);
+      });
+      return () => {
+        window.cancelAnimationFrame(frameId);
+        window.cancelAnimationFrame(unlockFrameId);
+      };
+    }
+
+    const duration = PREVIEW_RENDER_MS;
+    const glyphIntervalMs = duration / renderGlyphs.length;
+    const start = performance.now();
+    onRenderAnimationStateChangeRef.current?.(true);
+
+    const tick = (now: number) => {
+      const elapsed = Math.min(duration, now - start);
+      const visibleGlyphCount = Math.min(
+        renderGlyphs.length,
+        Math.max(0, Math.round(elapsed / glyphIntervalMs))
+      );
+      drawFrame(visibleGlyphCount);
+
+      if (elapsed < duration) {
+        frameId = window.requestAnimationFrame(tick);
+      } else {
+        drawFrame(renderGlyphs.length);
+        animatedTokenRef.current = animationToken;
+        unlockFrameId = window.requestAnimationFrame(() => {
+          onRenderAnimationStateChangeRef.current?.(false);
+        });
+      }
+    };
+
+    drawFrame(0);
+    frameId = window.requestAnimationFrame(tick);
+
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.cancelAnimationFrame(unlockFrameId);
+    };
+  }, [
+    animationToken,
+    backgroundColor,
+    canRenderPreview,
+    cellSize,
+    dimensions,
+    isRenderMounted,
+    lineHeight,
+    renderGlyphs,
+    shouldAnimate,
+    textColor,
+    viewportSize.height,
+    viewportSize.width,
+    zoom,
+  ]);
 
   return (
     <section className="vp-panel flex min-h-0 flex-1 flex-col p-4">
       <div className="mb-3">
         <p className="vp-kicker">PREVIEW</p>
       </div>
-      {errorMessage ? (
-        <div
-          className="flex min-h-0 flex-1 items-center justify-center rounded-[10px] border border-dashed px-6 text-center text-sm"
-          style={{ backgroundColor, color: textColor, borderColor: "var(--vp-row-border)" }}
-        >
-          {errorMessage}
-        </div>
-      ) : (
+      {showLoader || isRenderMounted ? (
         <div
           ref={setViewportNode}
           className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden rounded-[10px] border border-solid p-3"
           style={{ backgroundColor, borderColor: "var(--vp-row-border)" }}
         >
-          {dimensions && finalScale > 0 ? (
+          {isRenderMounted ? (
             <div
-              key={`preview-${animationToken}`}
-              className="font-render relative"
-              style={{
-                width: dimensions.width,
-                height: dimensions.height,
-                transform: `scale(${finalScale})`,
-                transformOrigin: "center center",
-              }}
+              className="vp-preview-render-layer"
+              data-visible={isLoaderFading || !showLoader ? "true" : "false"}
             >
-              {previewGlyphs.map((point, index) => (
-                <motion.span
-                  key={`${point.order}-${index}`}
-                  className="absolute whitespace-pre leading-none"
-                  style={{
-                    left: point.x,
-                    top: point.y,
-                    color: textColor,
-                    fontSize: `${cellSize}px`,
-                    fontWeight: point.weight,
-                  }}
-                  initial={shouldAnimate ? { opacity: 0, scale: 1.5 } : false}
-                  animate={{ opacity: point.alpha, scale: 1 }}
-                  transition={{
-                    duration: shouldAnimate ? 0.12 : 0,
-                    delay: shouldAnimate ? index * delayStep : 0,
-                    ease: STRIKE_EASE,
-                  }}
-                >
-                  {point.glyph}
-                </motion.span>
-              ))}
+              <canvas ref={canvasRef} className="block h-full w-full" aria-hidden="true" />
+            </div>
+          ) : null}
+          {showLoader ? (
+            <div
+              className="vp-preview-loader-layer"
+              data-visible={showLoader ? "true" : "false"}
+              data-fading={isLoaderFading ? "true" : "false"}
+            >
+              <div className="flex items-center justify-center">
+                <DotmSquare11
+                  ariaLabel="Processing uploaded image"
+                  color={textColor}
+                  dotShape="square"
+                  size={34}
+                  dotSize={4}
+                  speed={PREVIEW_LOADER_SPEED}
+                  pattern="full"
+                />
+              </div>
             </div>
           ) : null}
         </div>
-      )}
+      ) : statusMessage ? (
+        <div
+          className="flex min-h-0 flex-1 items-center justify-center rounded-[10px] border border-dashed px-6 text-center text-sm"
+          style={{ backgroundColor, color: textColor, borderColor: "var(--vp-row-border)" }}
+        >
+          {statusMessage}
+        </div>
+      ) : null}
     </section>
   );
 }

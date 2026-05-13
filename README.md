@@ -11,6 +11,7 @@ Each poem I write on my Substack [postcards from chaos](https://kiiraetc.substac
 - Paste a poem and upload a reference image.
 - Turn poem text into image-guided generative artwork.
 - Adjust text size, line height, zoom, and colors with a live preview.
+- Keep your in-progress poem, uploaded image, colors, and render/export settings when refreshing the page.
 - Work in a three-pane layout with dark/light theming.
 - Export artwork as PNG or JPG at 1x, 2x, or 4x.
 
@@ -50,11 +51,13 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 
 ## Current MVP behavior
 
-- Paste a poem and upload a JPEG/PNG reference image (image persists across refresh via local storage).
+- A brand-new tab/session starts from the bundled default image and default controls; refreshing the page restores the current poem, uploaded image, colors, and settings from `sessionStorage`.
 - Pick text/background colors via the custom popover picker (sat/val square + hue slider + Hex/RGB/HSL input); the browser-native color picker is intentionally not used.
 - Tune `Text size`, `Line height`, and `Zoom` in the **Details** panel.
 - Preview always centers and fits the subject to the preview area; zoom controls subject size, text size controls glyph density.
+- The render palette defaults stay the same in both light and dark UI themes unless the user customizes them.
 - Click the image thumbnail in the **Image** panel to open a larger popover preview of the uploaded reference.
+- The image thumbnail fills its frame edge-to-edge, while the upload card on the left stays button-width and truncates long filenames.
 - Export generated output to PNG or JPG at 1x/2x/4x — the exported image has the same logical dimensions as the preview panel multiplied by the chosen scale.
 
 ## Render pipeline (current)
@@ -161,6 +164,7 @@ In practice, start with shape controls (`Text size`, `Line height`) to lock the 
 
 - UI uses shadcn semantic tokens (`bg-card`, `border-border`, `text-muted-foreground`, etc.) backed by CSS variables in `app/globals.css`.
 - Supports dark/light mode via `next-themes` (`ThemeProvider` + header toggle).
+- The artwork defaults use a shared warm-paper palette in both themes, so switching UI theme does not silently change the render result.
 - `DialRoot` is mounted at the app root and receives the resolved `next-themes` mode after mount to avoid hydration mismatches.
 - The right-sidebar DialKit sliders also receive the resolved theme, so the toggle switches both the global DialKit panel and the embedded DialKit controls together.
 - Sliders use custom themed tracks and horizontal pill thumbs (`ThemeRange` + `.vp-range`) in both light and dark modes. Thumbs gain a subtle hover-puff (gated by `(hover: hover) and (pointer: fine)`) and a press-squeeze.
@@ -175,6 +179,7 @@ Motion in the app is shaped by Emil Kowalski's design-engineering principles ([a
 - **Specific transitions only** — no `transition: all`; every animated property is named explicitly.
 - **Strong ease-out entrance** for the glyph reveal (`cubic-bezier(0.23, 1, 0.32, 1)`), giving each character a snap instead of the previous linear pacing.
 - **AnimatePresence icon swap** on the theme toggle (rotate + scale crossfade) replacing the previous instant Sun↔Moon swap.
+- **Preview loader timing** — the image-processing loader runs for a fixed total of `1.2s`, including its fade-out, so the startup/refresh transition feels deliberate rather than abrupt.
 - **Image preview entry** — uploaded reference image thumbnails fade in while scaling from 90% to 100%, because nothing in the real world appears from nothing.
 - **`prefers-reduced-motion`** honored throughout: glyph reveal becomes instant, press-scales are disabled, slider thumb hover-scale is removed.
 - **Hover gating** via `@media (hover: hover) and (pointer: fine)` so touch devices don't trigger false hover states on tap.
@@ -191,3 +196,4 @@ The app is organized into three columns inside a `max-w-screen-2xl` (1536px) con
 
 Below the `lg` breakpoint the columns collapse to a single vertical stack: editor → preview → controls.
 
+Within the left column, the **Poem** panel is the flexible area and expands to absorb remaining height. The **Image** panel is intentionally compact: the upload card stays sized to the `Choose file` button, long filenames truncate, and the thumbnail uses the reclaimed horizontal space.

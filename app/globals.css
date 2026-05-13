@@ -184,6 +184,47 @@ body {
     color: var(--vp-text-muted);
   }
 
+  .vp-preview-glyph {
+    opacity: var(--vp-glyph-opacity, 1);
+    transform: translateY(0);
+  }
+
+  .vp-preview-loader-layer,
+  .vp-preview-render-layer {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 180ms linear, transform 180ms linear;
+  }
+
+  .vp-preview-loader-layer[data-visible="true"] {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  .vp-preview-loader-layer[data-fading="true"] {
+    opacity: 0;
+    transform: scale(0.99);
+  }
+
+  .vp-preview-render-layer[data-visible="false"] {
+    opacity: 0;
+    transform: none;
+  }
+
+  .vp-preview-render-layer[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .vp-preview-glyph-animate {
+    will-change: transform, opacity;
+    animation: vp-glyph-reveal var(--vp-glyph-duration, 130ms) var(--ease-out) both;
+    animation-delay: var(--vp-glyph-delay, 0ms);
+  }
+
   .vp-row {
     min-height: 36px;
     border: none;
@@ -348,8 +389,47 @@ body {
   }
 }
 
+@keyframes vp-glyph-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: var(--vp-glyph-opacity, 1);
+    transform: translateY(0);
+  }
+}
+
 /* Reduced motion: keep opacity/color fades, drop transform-based motion */
 @media (prefers-reduced-motion: reduce) {
+  .vp-preview-loader-layer,
+  .vp-preview-render-layer {
+    transition: none;
+  }
+
+  .vp-preview-loader-layer[data-fading="true"] {
+    opacity: 0;
+    transform: none;
+  }
+
+  .vp-preview-render-layer[data-visible="false"] {
+    opacity: 0;
+    transform: none;
+  }
+
+  .vp-preview-render-layer[data-visible="true"] {
+    opacity: 1;
+    transform: none;
+  }
+
+  .vp-preview-glyph,
+  .vp-preview-glyph-animate {
+    animation: none;
+    opacity: var(--vp-glyph-opacity, 1);
+    transform: none;
+  }
+
   input[type="range"].vp-range::-webkit-slider-thumb,
   input[type="range"].vp-range::-moz-range-thumb {
     transition: none;

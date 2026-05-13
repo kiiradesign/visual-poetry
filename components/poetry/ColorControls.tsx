@@ -7,6 +7,7 @@ type DetailControlsProps = {
   lineHeight: number;
   zoom: number;
   theme: DialTheme;
+  disabled?: boolean;
   onCellSizeChange: (value: number) => void;
   onLineHeightChange: (value: number) => void;
   onZoomChange: (value: number) => void;
@@ -22,6 +23,7 @@ export function DetailControls({
   lineHeight,
   zoom,
   theme,
+  disabled = false,
   onCellSizeChange,
   onLineHeightChange,
   onZoomChange,
@@ -38,9 +40,11 @@ export function DetailControls({
     <section
       className={cn(
         "vp-panel dialkit-root flex flex-col p-4",
+        disabled && "pointer-events-none",
         className
       )}
       data-theme={theme}
+      data-disabled={disabled ? "true" : "false"}
     >
       <div className="mb-4">
         <p className="vp-kicker">PARAMETERS</p>
@@ -54,6 +58,9 @@ export function DetailControls({
           step={1}
           unit="%"
           onChange={(percent) => {
+            if (disabled) {
+              return;
+            }
             const mappedPx = Math.max(1, Math.min(MAX_CELL_SIZE, (percent / 100) * MAX_CELL_SIZE));
             onCellSizeChange(mappedPx);
           }}
@@ -65,7 +72,12 @@ export function DetailControls({
           max={200}
           step={5}
           unit="%"
-          onChange={(percent) => onLineHeightChange(percent / 100)}
+          onChange={(percent) => {
+            if (disabled) {
+              return;
+            }
+            onLineHeightChange(percent / 100);
+          }}
         />
         <Slider
           label="Zoom"
@@ -74,7 +86,12 @@ export function DetailControls({
           max={Math.round(ZOOM_MAX * 100)}
           step={5}
           unit="%"
-          onChange={(percent) => onZoomChange(percent / 100)}
+          onChange={(percent) => {
+            if (disabled) {
+              return;
+            }
+            onZoomChange(percent / 100);
+          }}
         />
       </div>
     </section>
@@ -84,6 +101,7 @@ export function DetailControls({
 type VisualControlsProps = {
   textColor: string;
   backgroundColor: string;
+  disabled?: boolean;
   onTextColorChange: (value: string) => void;
   onBackgroundColorChange: (value: string) => void;
   className?: string;
@@ -92,6 +110,7 @@ type VisualControlsProps = {
 export function VisualControls({
   textColor,
   backgroundColor,
+  disabled = false,
   onTextColorChange,
   onBackgroundColorChange,
   className,
@@ -100,8 +119,10 @@ export function VisualControls({
     <section
       className={cn(
         "vp-panel flex flex-col p-4",
+        disabled && "pointer-events-none",
         className
       )}
+      data-disabled={disabled ? "true" : "false"}
     >
       <div className="mb-4">
         <p className="vp-kicker">PALETTE</p>
@@ -117,6 +138,7 @@ export function VisualControls({
               id="text-color-picker"
               label="Text color"
               value={textColor}
+              disabled={disabled}
               onChange={onTextColorChange}
             />
           </span>
@@ -131,6 +153,7 @@ export function VisualControls({
               id="background-color-picker"
               label="Background color"
               value={backgroundColor}
+              disabled={disabled}
               onChange={onBackgroundColorChange}
             />
           </span>

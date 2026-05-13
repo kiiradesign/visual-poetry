@@ -12,6 +12,7 @@ type ColorPickerProps = {
   label?: string;
   value: string;
   onChange: (value: string) => void;
+  disabled?: boolean;
   className?: string;
 };
 
@@ -139,7 +140,14 @@ function sanitizeInput(raw: string, format: ColorFormat): string {
   return raw.slice(0, 20);
 }
 
-export function ColorPicker({ id, label = "Color", value, onChange, className }: ColorPickerProps) {
+export function ColorPicker({
+  id,
+  label = "Color",
+  value,
+  onChange,
+  disabled = false,
+  className,
+}: ColorPickerProps) {
   const normalizedValue = normalizeHex(value);
   const [format, setFormat] = useState<ColorFormat>("hex");
   const [draft, setDraft] = useState(() => formatColor(normalizedValue, "hex"));
@@ -164,8 +172,9 @@ export function ColorPicker({ id, label = "Color", value, onChange, className }:
           id={id}
           type="button"
           aria-label={label}
+          disabled={disabled}
           className={cn(
-            "relative inline-flex size-7 shrink-0 cursor-pointer overflow-hidden rounded-[4px] transition-transform duration-150 [transition-timing-function:var(--ease-out)] active:scale-[0.94] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card",
+            "relative inline-flex size-7 shrink-0 overflow-hidden rounded-[4px] transition-transform duration-150 [transition-timing-function:var(--ease-out)] active:scale-[0.94] motion-reduce:active:scale-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-card disabled:cursor-default disabled:active:scale-100",
             className
           )}
           style={{ backgroundColor: normalizedValue }}
@@ -185,7 +194,12 @@ export function ColorPicker({ id, label = "Color", value, onChange, className }:
         >
           <HexColorPicker
             color={normalizedValue}
-            onChange={(next) => onChange(normalizeHex(next))}
+            onChange={(next) => {
+              if (disabled) {
+                return;
+              }
+              onChange(normalizeHex(next));
+            }}
           />
           <div className="mt-3 flex items-center gap-2">
             <div className="vp-field flex min-w-0 flex-1 items-center rounded-[8px] pl-2.5 focus-within:ring-1 focus-within:ring-ring">
@@ -195,6 +209,7 @@ export function ColorPicker({ id, label = "Color", value, onChange, className }:
               <input
                 type="text"
                 value={draft}
+                disabled={disabled}
                 onChange={(event) => setDraft(sanitizeInput(event.target.value, format))}
                 onBlur={() => commitDraft(draft)}
                 onKeyDown={(event) => {
@@ -211,6 +226,7 @@ export function ColorPicker({ id, label = "Color", value, onChange, className }:
             <div className="relative shrink-0">
               <select
                 value={format}
+                disabled={disabled}
                 onChange={(event) => setFormat(event.target.value as ColorFormat)}
                 className="vp-field h-9 cursor-pointer appearance-none rounded-md pl-2.5 pr-7 text-sm font-medium"
                 aria-label="Color format"

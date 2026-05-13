@@ -7,6 +7,7 @@ type ExportPanelProps = {
   scale: number;
   format: ExportFormat;
   canExport: boolean;
+  isProcessing?: boolean;
   onScaleChange: (value: number) => void;
   onFormatChange: (value: ExportFormat) => void;
   onExport: () => void;
@@ -17,6 +18,7 @@ export function ExportPanel({
   scale,
   format,
   canExport,
+  isProcessing = false,
   onScaleChange,
   onFormatChange,
   onExport,
@@ -77,7 +79,7 @@ export function ExportPanel({
         Export artwork
       </button>
 
-      {!canExport ? (
+      {!canExport && !isProcessing ? (
         <p className="vp-copy text-xs">
           Add poem text and a reference image before exporting.
         </p>

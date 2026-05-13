@@ -28,6 +28,181 @@ export type RenderOptions = {
   outputScale: number;
 };
 
+export type RenderGlyph = {
+  glyph: string;
+  x: number;
+  y: number;
+  alpha: number;
+  weight: number;
+};
+
+type PaintGlyphOptions = RenderOptions & {
+  visibleGlyphCount?: number;
+};
+
+function getRenderGeometry(
+  dimensions: RenderDimensions,
+  cellSize: number,
+  viewportWidth: number,
+  viewportHeight: number,
+  zoom: number
+) {
+  const fitScale = Math.min(viewportWidth / dimensions.width, viewportHeight / dimensions.height);
+  const finalScale = fitScale * zoom;
+  const renderedWidth = dimensions.width * finalScale;
+  const renderedHeight = dimensions.height * finalScale;
+  const offsetX = (viewportWidth - renderedWidth) / 2;
+  const offsetY = (viewportHeight - renderedHeight) / 2;
+  const scaledFontSize = Math.max(1, cellSize * finalScale);
+
+  return { finalScale, offsetX, offsetY, scaledFontSize };
+}
+
+export function buildRenderGlyphs(
+  poem: string,
+  brightnessMap: BrightnessMap,
+  dimensions: RenderDimensions,
+  cellSize: number,
+  lineHeight: number
+): RenderGlyph[] {
+  const glyphs = layoutTextGrid(poem, brightnessMap, dimensions.cols, dimensions.rows, cellSize);
+  const rowStep = Math.max(1, Math.floor(cellSize * lineHeight));
+  const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
+  const points: Array<{ glyph: string; x: number; y: number; col: number; row: number; order: number }> = [];
+  const jitterAmplitude = Math.min(0.9, cellSize * 0.12);
+
+  for (let row = 0; row < dimensions.rows; row += 1) {
+    for (let col = 0; col < dimensions.cols; col += 1) {
+      const glyph = glyphs[row * dimensions.cols + col];
+      if (glyph === " ") {
+        continue;
+      }
+
+      const jitterX = antiBandingJitter(col, row, jitterAmplitude);
+      points.push({
+        glyph,
+        x: col * cellSize + jitterX,
+        y: row * rowStep,
+        col,
+        row,
+        order: row * dimensions.cols + col,
+      });
+    }
+  }
+
+  const tonalSignals = new Float32Array(points.length);
+  let minSignal = Number.POSITIVE_INFINITY;
+  let maxSignal = Number.NEGATIVE_INFINITY;
+
+  for (let i = 0; i < points.length; i += 1) {
+    const point = points[i];
+    const brightness = sampleBrightnessAtCell(
+      brightnessMap,
+      point.col,
+      point.row,
+      dimensions.cols,
+      dimensions.rows
+    );
+    const contrast = Math.abs(brightness - backgroundBrightness);
+    const tonalSignal = Math.max(0, Math.min(1, (1 - brightness) * 0.8 + contrast * 1.4));
+    tonalSignals[i] = tonalSignal;
+    minSignal = Math.min(minSignal, tonalSignal);
+    maxSignal = Math.max(maxSignal, tonalSignal);
+  }
+
+  const signalRange = Math.max(0.0001, maxSignal - minSignal);
+  const minAlpha = 0.16;
+  const baseAlpha = 0.9;
+  const maxAlpha = 1;
+  const sliderStrength = DETAIL_STRENGTH;
+
+  return points.map((point, index) => {
+    const normalized = Math.max(0, Math.min(1, (tonalSignals[index] - minSignal) / signalRange));
+    const curved = Math.pow(normalized, 0.72);
+    const contrastBoost = 1 + sliderStrength * 3.1;
+    const contrasted = Math.max(0, Math.min(1, (curved - 0.5) * contrastBoost + 0.5));
+    const contrastedAlpha = minAlpha + (maxAlpha - minAlpha) * contrasted;
+    const alpha = Math.max(minAlpha, Math.min(1, baseAlpha + (contrastedAlpha - baseAlpha) * sliderStrength));
+    const weight = Math.round((300 + normalized * 400) / 100) * 100;
+
+    return {
+      glyph: point.glyph,
+      x: point.x,
+      y: point.y,
+      alpha,
+      weight,
+    };
+  });
+}
+
+export function paintGlyphsToCanvas(
+  canvas: HTMLCanvasElement,
+  glyphs: RenderGlyph[],
+  dimensions: RenderDimensions,
+  settings: RenderSettings,
+  options: PaintGlyphOptions
+): void {
+  const context = canvas.getContext("2d");
+  if (!context) {
+    throw new Error("Could not initialize 2D canvas context.");
+  }
+
+  const outputScale = Math.max(1, options.outputScale);
+  const canvasWidth = Math.max(1, Math.round(options.viewportWidth * outputScale));
+  const canvasHeight = Math.max(1, Math.round(options.viewportHeight * outputScale));
+  const visibleGlyphCount = Math.max(
+    0,
+    Math.min(glyphs.length, Math.floor(options.visibleGlyphCount ?? glyphs.length))
+  );
+
+  if (canvas.width !== canvasWidth || canvas.height !== canvasHeight) {
+    canvas.width = canvasWidth;
+    canvas.height = canvasHeight;
+  }
+
+  const cssWidth = `${options.viewportWidth}px`;
+  const cssHeight = `${options.viewportHeight}px`;
+  if (canvas.style.width !== cssWidth) {
+    canvas.style.width = cssWidth;
+  }
+  if (canvas.style.height !== cssHeight) {
+    canvas.style.height = cssHeight;
+  }
+
+  context.setTransform(outputScale, 0, 0, outputScale, 0, 0);
+  context.clearRect(0, 0, options.viewportWidth, options.viewportHeight);
+  context.fillStyle = settings.backgroundColor;
+  context.fillRect(0, 0, options.viewportWidth, options.viewportHeight);
+
+  const { finalScale, offsetX, offsetY, scaledFontSize } = getRenderGeometry(
+    dimensions,
+    settings.cellSize,
+    options.viewportWidth,
+    options.viewportHeight,
+    options.zoom
+  );
+
+  context.fillStyle = settings.textColor;
+  context.textBaseline = "top";
+  context.textAlign = "left";
+
+  let currentWeight = 400;
+  context.font = `${currentWeight} ${scaledFontSize}px "IBM Plex Mono", monospace`;
+
+  for (let index = 0; index < visibleGlyphCount; index += 1) {
+    const glyph = glyphs[index];
+    if (glyph.weight !== currentWeight) {
+      currentWeight = glyph.weight;
+      context.font = `${currentWeight} ${scaledFontSize}px "IBM Plex Mono", monospace`;
+    }
+
+    context.globalAlpha = glyph.alpha;
+    context.fillText(glyph.glyph, offsetX + glyph.x * finalScale, offsetY + glyph.y * finalScale);
+  }
+
+  context.globalAlpha = 1;
+}
+
 export function renderToCanvas(
   canvas: HTMLCanvasElement,
   poem: string,
@@ -36,127 +211,6 @@ export function renderToCanvas(
   settings: RenderSettings,
   options: RenderOptions
 ): void {
-  const context = canvas.getContext("2d");
-  if (!context) {
-    throw new Error("Could not initialize 2D canvas context.");
-  }
-
-  const canvasWidth = Math.max(1, Math.round(options.viewportWidth * options.outputScale));
-  const canvasHeight = Math.max(1, Math.round(options.viewportHeight * options.outputScale));
-
-  canvas.width = canvasWidth;
-  canvas.height = canvasHeight;
-  context.fillStyle = settings.backgroundColor;
-  context.fillRect(0, 0, canvasWidth, canvasHeight);
-
-  const glyphs = layoutTextGrid(
-    poem,
-    brightnessMap,
-    dimensions.cols,
-    dimensions.rows,
-    settings.cellSize
-  );
-  const rowStep = Math.max(1, Math.floor(settings.cellSize * settings.lineHeight));
-  const backgroundBrightness = estimateBackgroundBrightness(brightnessMap);
-
-  // Compute the fit-scale that maps natural render dimensions into the viewport,
-  // then multiply by zoom and output scale. Subject is centered in the canvas.
-  const fitScale = Math.min(
-    options.viewportWidth / dimensions.width,
-    options.viewportHeight / dimensions.height
-  );
-  const finalScale = fitScale * options.zoom * options.outputScale;
-  const renderedWidth = dimensions.width * finalScale;
-  const renderedHeight = dimensions.height * finalScale;
-  const offsetX = (canvasWidth - renderedWidth) / 2;
-  const offsetY = (canvasHeight - renderedHeight) / 2;
-  const scaledFontSize = Math.max(1, settings.cellSize * finalScale);
-
-  context.fillStyle = settings.textColor;
-  context.font = `400 ${scaledFontSize}px "IBM Plex Mono", monospace`;
-  context.textBaseline = "top";
-  context.textAlign = "left";
-
-  const tonalSignals = new Float32Array(dimensions.cols * dimensions.rows);
-  const localContrasts = new Float32Array(dimensions.cols * dimensions.rows);
-  let minSignal = Number.POSITIVE_INFINITY;
-  let maxSignal = Number.NEGATIVE_INFINITY;
-
-  for (let row = 0; row < dimensions.rows; row += 1) {
-    for (let col = 0; col < dimensions.cols; col += 1) {
-      const glyph = glyphs[row * dimensions.cols + col];
-      if (glyph === " ") {
-        continue;
-      }
-      const brightness = sampleBrightnessAtCell(
-        brightnessMap,
-        col,
-        row,
-        dimensions.cols,
-        dimensions.rows
-      );
-      const contrast = Math.abs(brightness - backgroundBrightness);
-      localContrasts[row * dimensions.cols + col] = contrast;
-      const tonalSignal = Math.max(0, Math.min(1, (1 - brightness) * 0.8 + contrast * 1.4));
-      tonalSignals[row * dimensions.cols + col] = tonalSignal;
-      minSignal = Math.min(minSignal, tonalSignal);
-      maxSignal = Math.max(maxSignal, tonalSignal);
-    }
-  }
-
-  const signalRange = Math.max(0.0001, maxSignal - minSignal);
-  const sliderStrength = DETAIL_STRENGTH;
-  const jitterAmplitude = Math.min(0.9, settings.cellSize * 0.12);
-  const coverageBalance = 0.7;
-  const usingPretextLayout = true;
-  let currentWeight = 400;
-
-  function quantizedWeight(normalizedSignal: number): number {
-    // Keep glyphs readable while still conveying detail through stroke density.
-    // Quantized to available font files loaded in next/font.
-    const minWeight = 300;
-    const maxWeight = 700;
-    const raw = minWeight + normalizedSignal * (maxWeight - minWeight);
-    return Math.round(raw / 100) * 100;
-  }
-
-  for (let row = 0; row < dimensions.rows; row += 1) {
-    for (let col = 0; col < dimensions.cols; col += 1) {
-      const glyph = glyphs[row * dimensions.cols + col];
-      if (glyph !== " ") {
-        const localContrast = localContrasts[row * dimensions.cols + col];
-        const signal = tonalSignals[row * dimensions.cols + col];
-        const normalized = Math.max(0, Math.min(1, (signal - minSignal) / signalRange));
-        const curved = Math.pow(normalized, 0.72);
-        const contrastBoost = 1 + sliderStrength * (usingPretextLayout ? 3.1 : 4.8);
-        const contrasted = Math.max(0, Math.min(1, (curved - 0.5) * contrastBoost + 0.5));
-
-        // 0.0 => near-uniform opacity, 1.0 => strong monochrome-like variation.
-        // Never let glyphs disappear entirely; thinned + faint is preferred.
-        const baseAlpha = usingPretextLayout ? 0.9 : 0.78;
-        const minAlpha = usingPretextLayout ? 0.16 : 0.14;
-        const maxAlpha = 1;
-        const contrastedAlpha = minAlpha + (maxAlpha - minAlpha) * contrasted;
-        let alpha = baseAlpha + (contrastedAlpha - baseAlpha) * sliderStrength;
-        // Coverage-heavy mode keeps more glyphs visible; detail-heavy mode can fade
-        // weak-contrast zones, but never to zero.
-        if (usingPretextLayout) {
-          const haloFade = Math.max(0, Math.min(1, (localContrast - 0.05) / 0.2));
-          const fadeStrength = (1 - coverageBalance) * 0.12;
-          alpha *= 1 - (1 - haloFade) * fadeStrength;
-        }
-        const targetWeight = quantizedWeight(normalized);
-        if (targetWeight !== currentWeight) {
-          currentWeight = targetWeight;
-          context.font = `${currentWeight} ${scaledFontSize}px "IBM Plex Mono", monospace`;
-        }
-        context.globalAlpha = Math.max(minAlpha, Math.min(1, alpha));
-        const jitterX = antiBandingJitter(col, row, jitterAmplitude);
-        const drawX = offsetX + (col * settings.cellSize + jitterX) * finalScale;
-        const drawY = offsetY + row * rowStep * finalScale;
-        context.fillText(glyph, drawX, drawY);
-      }
-    }
-  }
-  context.globalAlpha = 1;
+  const glyphs = buildRenderGlyphs(poem, brightnessMap, dimensions, settings.cellSize, settings.lineHeight);
+  paintGlyphsToCanvas(canvas, glyphs, dimensions, settings, options);
 }
