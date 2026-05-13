@@ -11,6 +11,7 @@ import { ImageUpload } from "@/components/poetry/ImageUpload";
 import { PoemInput } from "@/components/poetry/PoemInput";
 import { RenderPreview } from "@/components/poetry/RenderPreview";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { DotmSquare11 } from "@/components/ui/dotm-square-11";
 import { exportImage, type ExportFormat } from "@/lib/render/exportPng";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { preprocessImage } from "@/lib/render/preprocessImage";
@@ -21,6 +22,10 @@ const DEFAULT_POEM = "visual poetry";
 const DEFAULT_RENDER_TEXT = "#2D2926"; // ink black
 const DEFAULT_RENDER_BACKGROUND = "#F4F1EA"; // warm paper
 const DEFAULT_REFERENCE_IMAGE_NAME = "vp-logo.png";
+const MOBILE_VIDEO_SRC = "/branding/mobile-preview.mp4";
+const MOBILE_BACKGROUND = "#FFF4ED";
+const MOBILE_TEXT = "#282522";
+const MOBILE_MUTED_TEXT = "#4E4742";
 
 const STORAGE_IMAGE_KEY = "visual-poetry-uploaded-image";
 const STORAGE_POEM_KEY = "visual-poetry-poem";
@@ -412,91 +417,197 @@ export default function HomePage() {
   }
 
   return (
+    <>
+      <MobileLanding />
+      <main
+        className="vp-shell hidden h-screen overflow-hidden p-4 sm:p-5 lg:block"
+        style={!isAppReady ? { visibility: "hidden" } : undefined}
+        aria-hidden={!isAppReady}
+      >
+        <div className="mx-auto grid h-full w-full max-w-screen-2xl gap-3 lg:grid-cols-[minmax(280px,340px)_1fr_minmax(240px,280px)]">
+          <div className="flex min-h-0 flex-col gap-4">
+            <header className="vp-panel p-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center justify-between gap-3">
+                  <h1 className="sr-only">Visual Poetry</h1>
+                  <div className="min-w-0 flex-1">
+                    <Image
+                      src="/branding/vp-logo.svg"
+                      alt="Visual Poetry"
+                      width={180}
+                      height={28}
+                      priority
+                      className="h-9 w-auto max-w-full select-none brightness-0 dark:invert"
+                    />
+                  </div>
+                  <ThemeToggle />
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <p className="vp-copy min-w-0 text-sm">
+                    Turn your poems into generative art.
+                  </p>
+                  <span className="vp-copy shrink-0 text-sm">v.1.0</span>
+                </div>
+              </div>
+            </header>
+            <PoemInput value={poem} onChange={setPoem} />
+            <ImageUpload
+              onSelect={handleImageSelection}
+              filename={filename}
+              previewUrl={imagePreviewUrl}
+              error={imageError}
+            />
+          </div>
+
+          <div className="flex min-h-0 flex-col">
+            <RenderPreview
+              poem={poem}
+              brightnessMap={brightnessMap}
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              cellSize={cellSize}
+              lineHeight={lineHeight}
+              zoom={zoom}
+              isProcessing={isProcessingImage}
+              processingToken={processingToken}
+              animationToken={animationToken}
+              onViewportChange={setPreviewViewport}
+              onRenderAnimationStateChange={setIsRenderAnimating}
+            />
+          </div>
+
+          <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
+            <DetailControls
+              cellSize={cellSize}
+              lineHeight={lineHeight}
+              zoom={zoom}
+              theme={dialTheme}
+              disabled={isProcessingImage || isRenderAnimating || isPoemEmpty}
+              onCellSizeChange={setCellSize}
+              onLineHeightChange={setLineHeight}
+              onZoomChange={setZoom}
+            />
+            <VisualControls
+              textColor={textColor}
+              backgroundColor={backgroundColor}
+              disabled={isProcessingImage || isRenderAnimating}
+              onTextColorChange={handleTextColorChange}
+              onBackgroundColorChange={handleBackgroundColorChange}
+            />
+            <ExportPanel
+              scale={exportScale}
+              format={exportFormat}
+              canExport={canGenerate}
+              isProcessing={isProcessingImage}
+              onScaleChange={setExportScale}
+              onFormatChange={setExportFormat}
+              onExport={handleExport}
+            />
+            <AboutPanel />
+          </div>
+        </div>
+      </main>
+    </>
+  );
+}
+
+function MobileLanding() {
+  const [isVideoReady, setIsVideoReady] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+
+  return (
     <main
-      className="vp-shell h-screen overflow-hidden p-4 sm:p-5"
-      style={!isAppReady ? { visibility: "hidden" } : undefined}
-      aria-hidden={!isAppReady}
+      className="lg:hidden"
+      style={{ backgroundColor: MOBILE_BACKGROUND, color: MOBILE_TEXT }}
     >
-      <div className="mx-auto grid h-full w-full max-w-screen-2xl gap-3 lg:grid-cols-[minmax(280px,340px)_1fr_minmax(240px,280px)]">
-        <div className="flex min-h-0 flex-col gap-4">
-          <header className="vp-panel p-4">
-            <div className="flex flex-col gap-3">
-              <div className="flex items-center justify-between gap-3">
-                <h1 className="sr-only">Visual Poetry</h1>
-                <div className="min-w-0 flex-1">
-                  <Image
-                    src="/branding/vp-logo.svg"
-                    alt="Visual Poetry"
-                    width={180}
-                    height={28}
-                    priority
-                    className="h-9 w-auto max-w-full select-none brightness-0 dark:invert"
+      <div className="mx-auto flex h-[100svh] w-full max-w-sm flex-col px-5 pb-6 pt-8">
+        <header className="flex flex-col gap-3">
+          <div className="w-fit">
+            <Image
+              src="/branding/vp-logo.svg"
+              alt="Visual Poetry"
+              width={184}
+              height={30}
+              priority
+              className="h-11 w-auto select-none"
+            />
+          </div>
+          <p
+            className="w-full text-[15px] font-normal leading-6"
+            style={{ color: MOBILE_TEXT }}
+          >
+            Turn your poems into generative art. View this website on desktop to try it out.
+          </p>
+        </header>
+
+        <section className="mt-5 flex min-h-0 flex-1 flex-col">
+          <div className="flex min-h-0 flex-1 items-center justify-center">
+            <div
+              className="relative h-full w-auto max-w-full overflow-hidden"
+              style={{
+                aspectRatio: "10 / 16",
+                backgroundColor: MOBILE_BACKGROUND,
+              }}
+            >
+              <video
+                key={MOBILE_VIDEO_SRC}
+                src={MOBILE_VIDEO_SRC}
+                autoPlay
+                loop
+                muted
+                playsInline
+                preload="metadata"
+                onCanPlay={() => {
+                  setIsVideoReady(true);
+                  setVideoFailed(false);
+                }}
+                onError={() => {
+                  setIsVideoReady(false);
+                  setVideoFailed(true);
+                }}
+                className={`h-full w-full object-cover transition-opacity duration-200 [transition-timing-function:var(--ease-out)] ${
+                  isVideoReady ? "opacity-100" : "opacity-0"
+                }`}
+              />
+              {!isVideoReady || videoFailed ? (
+                <div className="absolute inset-0 flex items-center justify-center [transform:translateY(-3%)]">
+                  <DotmSquare11
+                    ariaLabel="Loading mobile preview"
+                    color={MOBILE_TEXT}
+                    dotShape="square"
+                    size={52}
+                    dotSize={5}
+                    speed={2.2}
+                    pattern="full"
+                    opacityBase={0.28}
+                    opacityMid={0.58}
+                    opacityPeak={1}
                   />
                 </div>
-                <ThemeToggle />
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <p className="vp-copy min-w-0 text-sm">
-                  Turn your poems into generative art.
-                </p>
-                <span className="vp-copy shrink-0 text-sm">v.1.0</span>
-              </div>
+              ) : null}
             </div>
-          </header>
-          <PoemInput value={poem} onChange={setPoem} />
-          <ImageUpload
-            onSelect={handleImageSelection}
-            filename={filename}
-            previewUrl={imagePreviewUrl}
-            error={imageError}
-          />
-        </div>
+          </div>
+        </section>
 
-        <div className="flex min-h-0 flex-col">
-          <RenderPreview
-            poem={poem}
-            brightnessMap={brightnessMap}
-            textColor={textColor}
-            backgroundColor={backgroundColor}
-            cellSize={cellSize}
-            lineHeight={lineHeight}
-            zoom={zoom}
-            isProcessing={isProcessingImage}
-            processingToken={processingToken}
-            animationToken={animationToken}
-            onViewportChange={setPreviewViewport}
-            onRenderAnimationStateChange={setIsRenderAnimating}
-          />
-        </div>
-
-        <div className="flex min-h-0 flex-col gap-4 overflow-y-auto pr-1">
-          <DetailControls
-            cellSize={cellSize}
-            lineHeight={lineHeight}
-            zoom={zoom}
-            theme={dialTheme}
-            disabled={isProcessingImage || isRenderAnimating || isPoemEmpty}
-            onCellSizeChange={setCellSize}
-            onLineHeightChange={setLineHeight}
-            onZoomChange={setZoom}
-          />
-          <VisualControls
-            textColor={textColor}
-            backgroundColor={backgroundColor}
-            disabled={isProcessingImage || isRenderAnimating}
-            onTextColorChange={handleTextColorChange}
-            onBackgroundColorChange={handleBackgroundColorChange}
-          />
-          <ExportPanel
-            scale={exportScale}
-            format={exportFormat}
-            canExport={canGenerate}
-            isProcessing={isProcessingImage}
-            onScaleChange={setExportScale}
-            onFormatChange={setExportFormat}
-            onExport={handleExport}
-          />
-          <AboutPanel />
+        <div className="mt-auto flex items-center justify-between gap-4 pt-6 text-[13px] leading-6">
+          <a
+            href="https://kiira.in"
+            target="_blank"
+            rel="noreferrer"
+            className="transition-colors duration-150 [transition-timing-function:var(--ease-out)]"
+            style={{ color: MOBILE_MUTED_TEXT }}
+          >
+            Made by Keerthi
+          </a>
+          <a
+            href="https://x.com/kiiradesign"
+            target="_blank"
+            rel="noreferrer"
+            className="transition-colors duration-150 [transition-timing-function:var(--ease-out)]"
+            style={{ color: MOBILE_MUTED_TEXT }}
+          >
+            X (Twitter)
+          </a>
         </div>
       </div>
     </main>
