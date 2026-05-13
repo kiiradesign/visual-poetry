@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
 import { ThemedDialRoot } from "@/components/themed-dial-root";
 import "dialkit/styles.css";
@@ -54,6 +54,11 @@ export const metadata: Metadata = {
     description: "Turn your poems into generative art.",
     images: ["/branding/opengraph.png"],
   },
+};
+
+export const viewport: Viewport = {
+  colorScheme: "light",
+  themeColor: "#FFF4ED",
 };
 
 export default function RootLayout({

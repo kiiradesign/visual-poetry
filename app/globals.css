@@ -6,6 +6,7 @@
 
 :root {
   color-scheme: light;
+  --vp-mobile-bg: #fff4ed;
 }
 
 * {
@@ -16,12 +17,20 @@ html,
 body {
   margin: 0;
   padding: 0;
+  min-height: 100%;
 }
 
 /* IBM Plex from next/font sets --font-ui; map to shadcn’s font-sans token */
 body {
   --font-sans: var(--font-ui), ui-sans-serif, system-ui, sans-serif;
   font-family: var(--font-sans);
+}
+
+@media (max-width: 1023px) {
+  html,
+  body {
+    background: var(--vp-mobile-bg);
+  }
 }
 
 .font-render {
