@@ -17,12 +17,14 @@ This project aims to reunite the draft with its visual soul. By using a poem's w
 - Three-pane layout: editor on the left, preview in the center (always fills viewport height), and controls + about on the right.
 - Detail Controls: Text size, line height, and **zoom** (subject size, decoupled from text density). Tonal contrast strength is held at a fixed optimal value.
 - Viewport-fit Rendering: Preview always centers the subject and fits it to the preview area regardless of text size; export matches the preview dimensions × 1x/2x/4x scale, so what you see is exactly what you export.
+- DialKit-inspired Control UI: Panel shells, sliders, export controls, and image upload surfaces are styled to match Josh Puckett's DialKit visual language while preserving the app's existing three-column workflow.
 - Custom Hex / RGB / HSL Color Picker: Sat/val square + hue slider + format-aware editable input (popover-based, no native OS color dialog).
-- Dark/Light Theming: shadcn token-based theme with mode toggle and consistent component styling.
+- Dark/Light Theming: `next-themes` mode toggle drives both the app shell and the embedded DialKit controls/root.
 - Theme-aware Defaults: Light mode defaults to warm paper/ink (`#F4F1EA` / `#2D2926`) and dark mode to Prussian blue/pale blue-white (`#003153` / `#E6EEF2`).
 - Animated Preview: Hammer-strike style glyph reveal (strong ease-out) on image load/refresh; slider changes do not retrigger animation.
 - Motion Polish: Custom easing curves (CSS vars), scale-on-press feedback across pressables, `AnimatePresence` icon swaps, and `prefers-reduced-motion` support throughout.
-- Generative Export: Save the resulting visual poetry as a high-resolution PNG at 1x / 2x / 4x.
+- Image Reference Panel: Split upload/thumbnail layout with larger preview tile and clickable popover image preview.
+- Generative Export: Save the resulting visual poetry as a high-resolution PNG or JPG at 1x / 2x / 4x.
 
 # Tech Stack
 
@@ -31,8 +33,9 @@ This project aims to reunite the draft with its visual soul. By using a poem's w
 - Text Layout Engine: Pretext (by Chenglou)
 - Rendering: HTML5 Canvas API (for export) and absolutely-positioned glyph spans (for preview)
 - Image Processing: Browser-native Canvas image data for luminance/brightness mapping
-- Motion: `framer-motion` for animated glyph reveal and icon transitions
+- Motion: `framer-motion` for animated glyph reveal / UI transitions, plus `motion` as a DialKit peer dependency
 - Color Picker: `react-colorful` wrapped in a custom Radix popover with Hex/RGB/HSL format switching
+- Tweak UI: `dialkit` mounted at app root and also used directly for the right-sidebar sliders
 - Version Control: Git and GitHub
 
 ## Project Structure
@@ -60,10 +63,11 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 ## Current MVP behavior
 
 - Paste a poem and upload a JPEG/PNG reference image (image persists across refresh via local storage).
-- Pick text/background colors via the custom popover picker (sat/val square + hue slider + Hex/RGB/HSL input).
+- Pick text/background colors via the custom popover picker (sat/val square + hue slider + Hex/RGB/HSL input); the browser-native color picker is intentionally not used.
 - Tune `Text size`, `Line height`, and `Zoom` in the **Details** panel.
 - Preview always centers and fits the subject to the preview area; zoom controls subject size, text size controls glyph density.
-- Export generated output to PNG at 1x/2x/4x — the exported image has the same logical dimensions as the preview panel multiplied by the chosen scale.
+- Click the image thumbnail in the **Image** panel to open a larger popover preview of the uploaded reference.
+- Export generated output to PNG or JPG at 1x/2x/4x — the exported image has the same logical dimensions as the preview panel multiplied by the chosen scale.
 
 ## Render pipeline (current)
 
@@ -88,7 +92,7 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
   - `finalScale = fitScale × zoom` applies the user's zoom multiplier (default `1.0`).
   - The subject is always centered, regardless of text size or aspect ratio.
 7. Preview rendering uses positioned glyph spans (`framer-motion`) with a single `transform: scale(finalScale)` applied to the entire group; glyph entry animates with a strong ease-out curve `cubic-bezier(0.23, 1, 0.32, 1)`.
-8. Export rendering uses an HTML5 canvas sized to `viewport × outputScale`, fills the background, then draws glyphs using the same fit-scale + zoom + centering math — so the exported PNG matches the preview pixel-for-pixel (scaled by 1x/2x/4x).
+8. Export rendering uses an HTML5 canvas sized to `viewport × outputScale`, fills the background, then draws glyphs using the same fit-scale + zoom + centering math — so the exported PNG/JPG matches the preview pixel-for-pixel (scaled by 1x/2x/4x).
 
 ## The Algorithm
 
@@ -169,6 +173,8 @@ In practice, start with shape controls (`Text size`, `Line height`) to lock the 
 
 - UI uses shadcn semantic tokens (`bg-card`, `border-border`, `text-muted-foreground`, etc.) backed by CSS variables in `app/globals.css`.
 - Supports dark/light mode via `next-themes` (`ThemeProvider` + header toggle).
+- `DialRoot` is mounted at the app root and receives the resolved `next-themes` mode after mount to avoid hydration mismatches.
+- The right-sidebar DialKit sliders also receive the resolved theme, so the toggle switches both the global DialKit panel and the embedded DialKit controls together.
 - Sliders use custom themed tracks and horizontal pill thumbs (`ThemeRange` + `.vp-range`) in both light and dark modes. Thumbs gain a subtle hover-puff (gated by `(hover: hover) and (pointer: fine)`) and a press-squeeze.
 - Form fields and controls use shared surface styles (`.vp-field`) for consistent border/ring behavior.
 
@@ -191,9 +197,9 @@ The app is organized into three columns inside a `max-w-screen-2xl` (1536px) con
 
 | Column | Width | Contents |
 | --- | --- | --- |
-| Left | `minmax(280px, 340px)` | Header, Poem text, Reference image |
+| Left | `minmax(280px, 340px)` | Header, Poem text, Reference image upload + preview |
 | Center | `1fr` | Preview (always fills viewport height) |
-| Right | `minmax(240px, 280px)` | Details (text size / line height / zoom), Colors (text / background), Export (Figma-style scale + format + button), About |
+| Right | `minmax(240px, 280px)` | Details (text size / line height / zoom), Colors (custom picker), Export (scale + PNG/JPG + action), About |
 
 Below the `lg` breakpoint the columns collapse to a single vertical stack: editor → preview → controls.
 
