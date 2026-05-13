@@ -1,12 +1,12 @@
 # Visual Poetry: The New Typewriter Art
 
-This project is a generative art tool designed to bridge the gap between written sentiment and visual form. Inspired by the legacy of typewriter art and the history of visual poetry, this app transforms raw text into a digital canvas where words function as pixels.
+This project is a generative art tool designed to bridge the gap between written sentiment and visual form. Inspired by the legacy of typewriter art and the history of visual poetry, this app creates generative art from poems using each letter in the text as a pixel.
 
 ## The Vision
 
-When I write, I often associate specific poems with physical objects—usually flowers or insects. On my Substack, [postcards from chaos](https://kiiraetc.substack.com), I use thumbnails to represent these associations. However, my drafts exist as sterile markdown files.
+A tool for turning poems into images, using the words themselves as the pixels.
 
-This project aims to reunite the draft with its visual soul. By using a poem's words as the literal "pixels" of a reference image, the text becomes a texture. It isn't meant to be read in the traditional sense; instead, the poem's structure provides the density and color for the artwork.
+Each poem I write on my Substack [postcards from chaos](https://kiiraetc.substack.com) is inspired by something physical, usually a flower or an insect. This project started as a way to make that visible. Paste a poem, upload a photo, and the words take the shape of the image's subject. The poem becomes something you look at rather than read.
 
 ## Features
 
