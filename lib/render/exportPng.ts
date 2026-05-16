@@ -7,7 +7,13 @@ export type ExportViewport = {
   zoom: number;
 };
 
-export type ExportFormat = "png" | "jpg";
+export type ExportFormat = "png" | "jpg" | "gif";
+
+/** Fit exports to a square canvas using the smaller preview dimension. */
+export function toSquareExportViewport(viewport: ExportViewport): ExportViewport {
+  const size = Math.min(viewport.width, viewport.height);
+  return { width: size, height: size, zoom: viewport.zoom };
+}
 
 export function exportImage(
   poem: string,
@@ -18,12 +24,13 @@ export function exportImage(
   outputScale: number,
   format: ExportFormat
 ): void {
+  const squareViewport = toSquareExportViewport(viewport);
   const canvas = document.createElement("canvas");
 
   renderToCanvas(canvas, poem, brightnessMap, dimensions, settings, {
-    viewportWidth: viewport.width,
-    viewportHeight: viewport.height,
-    zoom: viewport.zoom,
+    viewportWidth: squareViewport.width,
+    viewportHeight: squareViewport.height,
+    zoom: squareViewport.zoom,
     outputScale,
   });
 

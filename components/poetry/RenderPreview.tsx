@@ -2,6 +2,7 @@ import { useReducedMotion } from "framer-motion";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { DotmSquare11 } from "@/components/ui/dotm-square-11";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
+import { RENDER_ANIMATION_MS } from "@/lib/render/animation";
 import { buildRenderGlyphs, paintGlyphsToCanvas } from "@/lib/render/renderToCanvas";
 import { BrightnessMap } from "@/lib/render/types";
 
@@ -11,8 +12,6 @@ const PREVIEW_LOADER_SPEED = 1.5;
 const PREVIEW_LOADER_EXIT_MS = 180;
 const PREVIEW_LOADER_TOTAL_MS = 1200;
 const PREVIEW_LOADER_CYCLE_MS = PREVIEW_LOADER_TOTAL_MS - PREVIEW_LOADER_EXIT_MS;
-const PREVIEW_RENDER_MS = 2000;
-
 type RenderPreviewProps = {
   poem: string;
   brightnessMap: BrightnessMap | null;
@@ -207,7 +206,7 @@ export function RenderPreview({
       };
     }
 
-    const duration = PREVIEW_RENDER_MS;
+    const duration = RENDER_ANIMATION_MS;
     const glyphIntervalMs = duration / renderGlyphs.length;
     const start = performance.now();
     onRenderAnimationStateChangeRef.current?.(true);

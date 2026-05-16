@@ -62,6 +62,7 @@ export function ExportPanel({
           >
             <option value="png">PNG</option>
             <option value="jpg">JPG</option>
+            <option value="gif">GIF</option>
           </select>
           <CaretDown
             className="pointer-events-none absolute right-2 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground"

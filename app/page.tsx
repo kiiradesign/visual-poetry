@@ -12,6 +12,7 @@ import { PoemInput } from "@/components/poetry/PoemInput";
 import { RenderPreview } from "@/components/poetry/RenderPreview";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DotmSquare11 } from "@/components/ui/dotm-square-11";
+import { exportGif } from "@/lib/render/exportGif";
 import { exportImage, type ExportFormat } from "@/lib/render/exportPng";
 import { getRenderDimensions } from "@/lib/render/layoutTextGrid";
 import { preprocessImage } from "@/lib/render/preprocessImage";
@@ -49,7 +50,7 @@ type StoredSettingsPayload = {
 type PreviewViewport = { width: number; height: number };
 
 function isExportFormat(value: unknown): value is ExportFormat {
-  return value === "png" || value === "jpg";
+  return value === "png" || value === "jpg" || value === "gif";
 }
 
 function revokeObjectUrlIfNeeded(url?: string) {
@@ -391,29 +392,29 @@ export default function HomePage() {
     };
   }, [handleImageSelection]);
 
-  function handleExport() {
+  async function handleExport() {
     if (!brightnessMap || !dimensions || !poem.trim() || !previewViewport.width || !previewViewport.height) {
       return;
     }
 
-    exportImage(
-      poem,
-      brightnessMap,
-      dimensions,
-      {
-        cellSize,
-        lineHeight,
-        textColor,
-        backgroundColor,
-      },
-      {
-        width: previewViewport.width,
-        height: previewViewport.height,
-        zoom,
-      },
-      exportScale,
-      exportFormat
-    );
+    const settings = {
+      cellSize,
+      lineHeight,
+      textColor,
+      backgroundColor,
+    };
+    const viewport = {
+      width: previewViewport.width,
+      height: previewViewport.height,
+      zoom,
+    };
+
+    if (exportFormat === "gif") {
+      await exportGif(poem, brightnessMap, dimensions, settings, viewport, exportScale);
+      return;
+    }
+
+    exportImage(poem, brightnessMap, dimensions, settings, viewport, exportScale, exportFormat);
   }
 
   return (
