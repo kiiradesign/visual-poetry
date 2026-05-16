@@ -13,14 +13,17 @@ Each poem I write on my Substack [postcards from chaos](https://kiiraetc.substac
 - Adjust text size, line height, zoom, and colors with a live preview.
 - Keep your in-progress poem, uploaded image, colors, and render/export settings when refreshing the page.
 - Work in a three-pane layout with dark/light theming.
-- Export artwork as PNG or JPG at 1x, 2x, or 4x.
+- Export artwork as PNG, JPG, or GIF at 1x, 2x, or 4x.
+- Export a 2-second GIF of the letter-by-letter reveal animation (same timing as the live preview).
+- Export to a square canvas (cropped to the smaller preview dimension) for social-friendly output.
 
 # Tech Stack
 
 - Frontend Framework: Next.js (React)
 - Styling: Tailwind CSS, shadcn
 - Text Layout Engine: Pretext (by Chenglou)
-- Rendering: HTML5 Canvas API (for export) and absolutely-positioned glyph spans (for preview)
+- Rendering: HTML5 Canvas API (preview and export)
+- GIF encoding: [`gifenc`](https://github.com/mattdesl/gifenc) (browser-side, no upload)
 - Image Processing: Browser-native Canvas image data for luminance/brightness mapping
 - Motion: `framer-motion` for animated glyph reveal / UI transitions, plus `motion` as a DialKit peer dependency
 - Color Picker: `react-colorful` wrapped in a custom Radix popover with Hex/RGB/HSL format switching
@@ -60,7 +63,9 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 - Click the image thumbnail in the **Image** panel to open a larger popover preview of the uploaded reference.
 - The image thumbnail fills its frame edge-to-edge, while the upload card on the left stays button-width and truncates long filenames.
 - The image popover preview keeps a fixed width, preserves the original aspect ratio of the uploaded image, and shows the full image without cropping.
-- Export generated output to PNG or JPG at 1x/2x/4x — the exported image has the same logical dimensions as the preview panel multiplied by the chosen scale.
+- Export generated output to PNG, JPG, or GIF at 1x/2x/4x.
+- PNG/JPG exports use a **square** canvas sized to `min(preview width, preview height)`, then scaled by the chosen export multiplier. The composition is centered the same way as in the preview.
+- GIF export encodes a **2-second** letter-by-letter reveal (`RENDER_ANIMATION_MS = 2000`) at 20 fps, matching the live preview animation. Encoding runs entirely in the browser via `gifenc`.
 
 ## Render pipeline (current)
 
@@ -84,8 +89,9 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
   - `fitScale = min(viewport.W / natural.W, viewport.H / natural.H)` projects the natural-size composition into the preview area.
   - `finalScale = fitScale × zoom` applies the user's zoom multiplier (default `0.95`).
   - The subject is always centered, regardless of text size or aspect ratio.
-7. Preview rendering uses positioned glyph spans (`framer-motion`) with a single `transform: scale(finalScale)` applied to the entire group; glyph entry animates with a strong ease-out curve `cubic-bezier(0.23, 1, 0.32, 1)`.
-8. Export rendering uses an HTML5 canvas sized to `viewport × outputScale`, fills the background, then draws glyphs using the same fit-scale + zoom + centering math — so the exported PNG/JPG matches the preview pixel-for-pixel (scaled by 1x/2x/4x).
+7. **Preview rendering** draws to a `<canvas>` with the same glyph layout, fit-scale, zoom, and centering as export. On each new image/poem render, glyphs reveal over **2 seconds** in index order: one glyph every `2000ms ÷ glyphCount`, driven by `requestAnimationFrame` and a visible glyph count (`round(elapsed / interval)`).
+8. **Still-image export** (`exportPng.ts`) renders a single frame to canvas at `squareViewport × outputScale` so PNG/JPG matches the preview (scaled by 1x/2x/4x).
+9. **GIF export** (`exportGif.ts`) reuses the same canvas painter frame-by-frame across the 2s reveal, then quantizes and encodes with `gifenc`.
 
 ## The Algorithm
 
@@ -179,7 +185,7 @@ Motion in the app is shaped by Emil Kowalski's design-engineering principles ([a
 - **Custom easing curves** defined as CSS vars in `app/globals.css` — `--ease-out`, `--ease-in-out`, `--ease-quick` — because built-in CSS easings are too weak for UI work.
 - **Scale-on-press feedback** on every pressable (buttons, theme toggle, color swatch, file input, slider thumbs) using `transform: scale(0.94–0.97)` with the shared ease-out curve at 150ms.
 - **Specific transitions only** — no `transition: all`; every animated property is named explicitly.
-- **Strong ease-out entrance** for the glyph reveal (`cubic-bezier(0.23, 1, 0.32, 1)`), giving each character a snap instead of the previous linear pacing.
+- **Letter reveal** — preview and GIF use a fixed **2s** linear stagger (no per-glyph CSS easing); each letter’s slot is `index × (2000ms / glyphCount)`. UI chrome still uses the shared ease-out curves for buttons, loaders, and popovers.
 - **AnimatePresence icon swap** on the theme toggle (rotate + scale crossfade) replacing the previous instant Sun↔Moon swap.
 - **Preview loader timing** — the image-processing loader runs for a fixed total of `1.2s`, including its fade-out, so the startup/refresh transition feels deliberate rather than abrupt.
 - **Idle preview state** — when there is no poem text yet, the preview shows a looping cycler instead of helper copy, using the active text color so the empty state still feels connected to the current palette.
@@ -195,7 +201,7 @@ The app is organized into three columns inside a `max-w-screen-2xl` (1536px) con
 | --- | --- | --- |
 | Left | `minmax(280px, 340px)` | Header, Poem text, Reference image upload + preview |
 | Center | `1fr` | Preview (always fills viewport height) |
-| Right | `minmax(240px, 280px)` | Details (text size / line height / zoom), Colors (custom picker), Export (scale + PNG/JPG + action), About |
+| Right | `minmax(240px, 280px)` | Details (text size / line height / zoom), Colors (custom picker), Export (scale + PNG/JPG/GIF + action), About |
 
 Below the `lg` breakpoint the columns collapse to a single vertical stack: editor → preview → controls.
 
