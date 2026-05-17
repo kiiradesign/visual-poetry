@@ -1,5 +1,10 @@
 import { GIFEncoder, applyPalette, quantize } from "gifenc";
-import { GIF_EXPORT_FPS, RENDER_ANIMATION_MS } from "./animation";
+import {
+  GIF_EXPORT_FRAME_COUNT,
+  RENDER_ANIMATION_MS,
+  getGifFrameDelaysMs,
+  gifFrameElapsedMs,
+} from "./animation";
 import { toSquareExportViewport, type ExportViewport } from "./exportPng";
 import { buildRenderGlyphs, paintGlyphsToCanvas } from "./renderToCanvas";
 import { BrightnessMap, RenderDimensions, RenderSettings } from "./types";
@@ -50,8 +55,7 @@ export async function exportGif(
     throw new Error("Could not initialize 2D canvas context.");
   }
 
-  const frameDelayMs = 1000 / GIF_EXPORT_FPS;
-  const frameCount = Math.max(1, Math.round((RENDER_ANIMATION_MS / 1000) * GIF_EXPORT_FPS));
+  const frameDelaysMs = getGifFrameDelaysMs();
   const paintOptions = {
     viewportWidth: squareViewport.width,
     viewportHeight: squareViewport.height,
@@ -61,11 +65,8 @@ export async function exportGif(
 
   const gif = GIFEncoder();
 
-  for (let frame = 0; frame < frameCount; frame += 1) {
-    const elapsedMs =
-      frame === frameCount - 1
-        ? RENDER_ANIMATION_MS
-        : Math.min(RENDER_ANIMATION_MS, frame * frameDelayMs);
+  for (let frame = 0; frame < GIF_EXPORT_FRAME_COUNT; frame += 1) {
+    const elapsedMs = gifFrameElapsedMs(frame);
 
     paintGlyphsToCanvas(canvas, glyphs, dimensions, settings, {
       ...paintOptions,
@@ -78,7 +79,7 @@ export async function exportGif(
 
     gif.writeFrame(index, width, height, {
       palette,
-      delay: frameDelayMs,
+      delay: frameDelaysMs[frame],
     });
   }
 

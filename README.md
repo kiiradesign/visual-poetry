@@ -65,7 +65,7 @@ Typewriter Art (The Marginalian): An exploration of how the constraints of a gri
 - The image popover preview keeps a fixed width, preserves the original aspect ratio of the uploaded image, and shows the full image without cropping.
 - Export generated output to PNG, JPG, or GIF at 1x/2x/4x.
 - PNG/JPG exports use a **square** canvas sized to `min(preview width, preview height)`, then scaled by the chosen export multiplier. The composition is centered the same way as in the preview.
-- GIF export encodes a **2-second** letter-by-letter reveal (`RENDER_ANIMATION_MS = 2000`) at 20 fps, matching the live preview animation. Encoding runs entirely in the browser via `gifenc`.
+- GIF export encodes a **2-second** letter-by-letter reveal (`RENDER_ANIMATION_MS = 2000`) at 20 fps (40 frames × 50 ms each), matching the live preview animation. Frame delays are distributed so they sum to exactly 2000 ms. Encoding runs entirely in the browser via `gifenc`.
 
 ## Render pipeline (current)
 
